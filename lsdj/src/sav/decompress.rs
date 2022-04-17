@@ -10,16 +10,22 @@ const DEFAULT_WAVE_BYTE: u8 = 0xF0;
 const DEFAULT_INSTRUMENT_BYTE: u8 = 0xF1;
 const EOF_BYTE: u8 = 0xFF;
 
-const BLOCKS_OFFSET: usize = Project::LEN + Block::LEN;
+// Blocks start at 0x8000 and take 0x200 bytes. The block from 0x8000 to 0x8200 is
+// block 0. It isn't actually used for project data, but contains meta data about the
+// other blocks. As such, the first project in a sav file will (almost always) start
+// on block 1, or 0x8200.
+const BLOCKS_OFFSET: usize = Project::LEN;
 
 pub fn decompress<R>(reader: R) -> Result<Project>
 where
     R: Read + Seek,
 {
     let mut project = Project::zeroed();
-    let cursor = Cursor::new(project.as_mut_slice());
+    let mut cursor = Cursor::new(project.as_mut_slice());
 
-    decompress_until_eof(reader, cursor)?;
+    decompress_until_eof(reader, &mut cursor)?;
+
+    assert_eq!(cursor.stream_position()?, Project::LEN as u64);
 
     Ok(project)
 }
@@ -27,7 +33,7 @@ where
 pub fn decompress_until_eof<R, W>(mut reader: R, mut writer: W) -> Result<()>
 where
     R: Read + Seek,
-    W: Write,
+    W: Write + Seek,
 {
     loop {
         match read_byte(&mut reader)? {
@@ -35,8 +41,7 @@ where
             CMD_BYTE => match decompress_cmd_byte(&mut reader, &mut writer)? {
                 Continuation::Continue => (),
                 Continuation::JumpToBlock(block) => {
-                    let offset = BLOCKS_OFFSET + Block::LEN * block as usize;
-                    reader.seek(SeekFrom::Start(offset as u64))?;
+                    reader.seek(SeekFrom::Start(block_position(block)))?;
                 }
                 Continuation::EndOfFile => break,
             },
@@ -52,6 +57,10 @@ pub enum Continuation {
     Continue,
     JumpToBlock(u8),
     EndOfFile,
+}
+
+fn block_position(block: u8) -> u64 {
+    (BLOCKS_OFFSET + Block::LEN * block as usize) as u64
 }
 
 fn decompress_rle_byte<R, W>(mut reader: R, mut writer: W) -> Result<()>
@@ -222,5 +231,17 @@ mod tests {
                 .unwrap(),
             Continuation::EndOfFile
         );
+    }
+
+    #[test]
+    fn empty() {
+        let sav = include_bytes!("../../../test/92L_empty.sav");
+        let mut reader = Cursor::new(sav);
+
+        reader
+            .seek(SeekFrom::Start(block_position(1)))
+            .expect("could not seek to blocks offset");
+
+        assert!(decompress(reader).is_ok());
     }
 }
