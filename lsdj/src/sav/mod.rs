@@ -1,5 +1,4 @@
 pub mod block;
-pub mod compress;
 pub mod decompress;
 pub mod instrument;
 pub mod wave;
