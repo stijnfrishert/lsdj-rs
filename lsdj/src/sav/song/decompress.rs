@@ -1,4 +1,5 @@
-use super::{block::Block, instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, Project};
+use super::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, Song};
+use crate::sav::block::Block;
 use std::{
     io::{Cursor, Read, Result, Seek, SeekFrom, Write},
     slice,
@@ -14,18 +15,18 @@ const EOF_BYTE: u8 = 0xFF;
 // block 0. It isn't actually used for project data, but contains meta data about the
 // other blocks. As such, the first project in a sav file will (almost always) start
 // on block 1, or 0x8200.
-const BLOCKS_OFFSET: usize = Project::LEN;
+const BLOCKS_OFFSET: usize = Song::LEN;
 
-pub fn decompress<R>(reader: R) -> Result<Project>
+pub fn decompress<R>(reader: R) -> Result<Song>
 where
     R: Read + Seek,
 {
-    let mut project = Project::zeroed();
+    let mut project = Song::zeroed();
     let mut cursor = Cursor::new(project.as_mut_slice());
 
     decompress_until_eof(reader, &mut cursor)?;
 
-    assert_eq!(cursor.stream_position()?, Project::LEN as u64);
+    assert_eq!(cursor.stream_position()?, Song::LEN as u64);
 
     Ok(project)
 }
@@ -235,7 +236,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let sav = include_bytes!("../../../test/92L_empty.sav");
+        let sav = include_bytes!("../../../../test/92L_empty.sav");
         let mut reader = Cursor::new(sav);
 
         reader
