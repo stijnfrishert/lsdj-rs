@@ -21,14 +21,14 @@ pub fn decompress<R>(reader: R) -> Result<SongMemory>
 where
     R: Read + Seek,
 {
-    let mut project = SongMemory::zeroed();
-    let mut cursor = Cursor::new(project.as_mut_slice());
+    let mut memory = [0; SongMemory::LEN];
+    let mut cursor = Cursor::new(memory.as_mut_slice());
 
     decompress_until_eof(reader, &mut cursor)?;
 
     assert_eq!(cursor.stream_position()?, SongMemory::LEN as u64);
 
-    Ok(project)
+    Ok(SongMemory(memory))
 }
 
 pub fn decompress_until_eof<R, W>(mut reader: R, mut writer: W) -> Result<()>
