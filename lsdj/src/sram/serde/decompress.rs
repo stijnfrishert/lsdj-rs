@@ -1,5 +1,5 @@
 use super::BLOCK_LEN;
-use crate::sav::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, SongMemory};
+use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, SongMemory};
 use std::{
     io::{Cursor, Read, Result, Seek, SeekFrom, Write},
     slice,

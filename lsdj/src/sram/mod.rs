@@ -1,4 +1,4 @@
-//! Anything having to do with LSDJ save files/SRAM (versus the ROM)
+//! Anything having to do with LSDJ SRAM/save files (versus the ROM)
 
 mod project;
 pub mod serde;
@@ -15,15 +15,15 @@ use song::SongMemory;
 use std::io::{self, Read};
 use thiserror::Error;
 
-/// The SRAM of a full LSDJ save file
-pub struct Sav {
+/// The SRAM for a full LSDJ save
+pub struct SRam {
     working_memory_song: SongMemory,
     blocks: [u8; 0x18000],
 }
 
-impl Sav {
-    /// Construct a Sav from an I/O reader
-    pub fn from_reader<R>(mut reader: R) -> Result<Self, SavReadError>
+impl SRam {
+    /// Parse SRAM from an I/O reader
+    pub fn from_reader<R>(mut reader: R) -> Result<Self, SRamReadError>
     where
         R: Read,
     {
@@ -34,7 +34,7 @@ impl Sav {
         reader.read_exact(blocks.as_mut_slice())?;
 
         if blocks[0x13E] != 0x6A && blocks[0x13F] != 0x6B {
-            return Err(SavReadError::SramCheckIncorrect);
+            return Err(SRamReadError::CheckIncorrect);
         }
 
         Ok(Self {
@@ -57,40 +57,42 @@ impl Sav {
     }
 
     /// Does a project slots contain a project?
-    pub fn is_project_in_use(&self, index: u8) -> bool {
+    pub fn is_project_in_use(&self, index: u5) -> bool {
+        let index = index.into();
         self.alloc_table().iter().any(|block| *block == index)
     }
 
-    /// Retrieve the name of one of the projects without decompression
+    /// Retrieve the name of one of the projects _without decompressing it first_.
     ///
-    /// If a project is not use, its name is non-sensical. None is returned (even though
-    /// memory for this name exists)
-    pub fn project_name(&self, index: u8) -> Option<Result<Name<8>, FromBytesError>> {
+    /// If a project is not use, its name is non-sensical. [`None`] is returned (even though
+    /// memory for a name may exist).
+    pub fn project_name(&self, index: u5) -> Option<Result<Name<8>, FromBytesError>> {
         if self.is_project_in_use(index) {
-            let offset = index as usize * 8;
+            let offset = u8::from(index) as usize * 8;
             Some(Name::from_bytes(&self.blocks[offset..offset + 8]))
         } else {
             None
         }
     }
 
-    /// Retrieve the version of one of the projects without decompression
+    /// Retrieve the version of one of the projects _without decompressing it first_.
     ///
-    /// If a project is not use, its version is non-sensical. None is returned (even though
-    /// memory for this version exists)
-    pub fn project_version(&self, index: u8) -> Option<u8> {
+    /// If a project is not use, its version is non-sensical. [`None`] is returned (even though
+    /// memory for a version may exist).
+    pub fn project_version(&self, index: u5) -> Option<u8> {
         if self.is_project_in_use(index) {
-            let offset = 0x100 + index as usize;
+            let offset = 0x100 + u8::from(index) as usize;
             Some(self.blocks[offset])
         } else {
             None
         }
     }
 
-    /// Decompress a project's song memory
+    /// Decompress a project's song memory.
     ///
-    /// If a project is not use, it doesn't have any compressed song data, so None is returned
-    pub fn decompress_song_memory(&self, index: u8) -> Option<Result<SongMemory, io::Error>> {
+    /// If a project is not use, it doesn't have any compressed song data and [`None`] is returned.
+    pub fn decompress_song_memory(&self, index: u5) -> Option<Result<SongMemory, io::Error>> {
+        let index = index.into();
         match self.alloc_table().iter().find(|block| **block == index) {
             Some(block) => {
                 // Due to some weird quirk, the indices in the block alloc table start counting at 0,
@@ -109,13 +111,13 @@ impl Sav {
     }
 }
 
-/// An error describing what could go wrong reading a [`Sav`] from I/O
+/// An error describing what could go wrong reading [`SRam`] from I/O
 #[derive(Debug, Error)]
-pub enum SavReadError {
+pub enum SRamReadError {
     /// All correctly initialized SRAM memory has certain magic bytes set.
     /// This error is returned when that isn't the case during an SRAM read.
     #[error("The SRAM initialization check failed")]
-    SramCheckIncorrect,
+    CheckIncorrect,
 
     /// Any failure that has to do with I/O
     #[error("Something failed with I/O")]
@@ -130,22 +132,24 @@ mod tests {
     fn empty_92l() {
         use std::io::Cursor;
 
-        let sav = Sav::from_reader(Cursor::new(include_bytes!("../../../test/92L_empty.sav")))
-            .expect("could not load sav");
+        let sram = {
+            let bytes = Cursor::new(include_bytes!("../../../test/92L_empty.sav"));
+            SRam::from_reader(bytes).expect("could not parse SRAM")
+        };
 
-        assert_eq!(sav.active_project(), Some(u5::new(0)));
+        assert_eq!(sram.active_project(), Some(u5::new(0)));
 
-        assert!(sav.is_project_in_use(0));
+        assert!(sram.is_project_in_use(u5::new(0)));
         assert_eq!(
-            sav.project_name(0),
+            sram.project_name(u5::new(0)),
             Some(Ok(Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap()))
         );
-        assert_eq!(sav.project_version(0), Some(0));
-        sav.decompress_song_memory(0).unwrap().unwrap();
+        assert_eq!(sram.project_version(u5::new(0)), Some(0));
+        sram.decompress_song_memory(u5::new(0)).unwrap().unwrap();
 
-        assert!(!sav.is_project_in_use(1));
-        assert_eq!(sav.project_name(1), None);
-        assert_eq!(sav.project_version(1), None);
-        assert!(sav.decompress_song_memory(1).is_none());
+        assert!(!sram.is_project_in_use(u5::new(1)));
+        assert_eq!(sram.project_name(u5::new(1)), None);
+        assert_eq!(sram.project_version(u5::new(1)), None);
+        assert!(sram.decompress_song_memory(u5::new(1)).is_none());
     }
 }
