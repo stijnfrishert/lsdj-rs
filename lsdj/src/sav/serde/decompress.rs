@@ -1,5 +1,5 @@
-use super::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, SongMemory};
-use crate::sav::block::Block;
+use super::block::Block;
+use crate::sav::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, SongMemory};
 use std::{
     io::{Cursor, Read, Result, Seek, SeekFrom, Write},
     slice,

@@ -1,2 +1,2 @@
-pub mod block;
+pub mod serde;
 pub mod song;

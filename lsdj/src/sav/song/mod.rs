@@ -1,4 +1,3 @@
-pub mod decompress;
 pub mod instrument;
 pub mod wave;
 
@@ -14,11 +13,6 @@ impl SongMemory {
     /// Note that this does not comprise a proper song structure
     pub(crate) fn zeroed() -> Self {
         Self([0; Self::LEN])
-    }
-
-    /// Get immutable access to the bytes in the song
-    pub(crate) fn as_slice(&self) -> &[u8] {
-        self.0.as_slice()
     }
 
     /// Get mutable access to the bytes in the song
