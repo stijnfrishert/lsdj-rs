@@ -6,6 +6,7 @@ mod name;
 pub use name::{FromBytesError, Name};
 
 use crate::u5;
+use serde::decompress::decompress;
 use song::SongMemory;
 use std::io::{self, Read};
 use thiserror::Error;
@@ -16,6 +17,7 @@ pub struct Sav {
 }
 
 impl Sav {
+    /// Construct a Sav from an I/O reader
     pub fn from_reader<R>(mut reader: R) -> Result<Self, SavReadError>
     where
         R: Read,
@@ -80,6 +82,22 @@ impl Sav {
         }
     }
 
+    /// Decompress a project's song memory
+    ///
+    /// If a project is not use, it doesn't have any compressed song data, so None is returned
+    pub fn decompress_song_memory(&self, index: u8) -> Option<Result<SongMemory, io::Error>> {
+        match self.alloc_table().iter().find(|block| **block == index) {
+            Some(block) => {
+                // Due to some weird quirk, the indices in the block alloc table start counting at 0,
+                // while the first block is always used for the block meta-data (and block 1 and upward
+                // are actually used for project data). Hence, +1.
+                let block = block + 1;
+                Some(decompress(&self.blocks, block))
+            }
+            None => None,
+        }
+    }
+
     /// Return the part of block 0 that represents the block allocation table
     fn alloc_table(&self) -> &[u8] {
         &self.blocks[0x141..0x1FF]
@@ -114,9 +132,11 @@ mod tests {
             Some(Ok(Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap()))
         );
         assert_eq!(sav.project_version(0), Some(0));
+        sav.decompress_song_memory(0).unwrap().unwrap();
 
         assert!(!sav.is_project_in_use(1));
         assert_eq!(sav.project_name(1), None);
         assert_eq!(sav.project_version(1), None);
+        assert!(sav.decompress_song_memory(1).is_none());
     }
 }
