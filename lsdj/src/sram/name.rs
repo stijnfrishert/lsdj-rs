@@ -15,9 +15,9 @@ impl<const N: usize> Name<N> {
     const LIGHTNING_BOLT_CHAR: u8 = 95;
 
     /// Try to convert a byte slice to a name
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, FromBytesError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, NameFromBytesError> {
         if bytes.len() > N {
-            return Err(FromBytesError::TooLong);
+            return Err(NameFromBytesError::TooLong);
         }
 
         let mut dest = [0; N];
@@ -25,7 +25,7 @@ impl<const N: usize> Name<N> {
             match *byte {
                 byte if Self::is_byte_allowed(byte) => dest[index] = byte,
                 0 => break,
-                _ => return Err(FromBytesError::DisallowedByte { byte: *byte, index }),
+                _ => return Err(NameFromBytesError::DisallowedByte { byte: *byte, index }),
             }
         }
 
@@ -74,7 +74,7 @@ impl<const N: usize> fmt::Display for Name<N> {
 
 /// An error describing what could go wrong converting a byte slice to a [`Name`]
 #[derive(Debug, Error, PartialEq, Eq)]
-pub enum FromBytesError {
+pub enum NameFromBytesError {
     /// Error case for when the source slice is too big to fit in the [`Name`] string.
     #[error("The slice did not fit in the name array")]
     TooLong,
@@ -100,12 +100,12 @@ mod tests {
 
         assert_eq!(
             Name::<8>::from_bytes("123456789".as_bytes()),
-            Err(FromBytesError::TooLong)
+            Err(NameFromBytesError::TooLong)
         );
 
         assert_eq!(
             Name::<8>::from_bytes("A!".as_bytes()),
-            Err(FromBytesError::DisallowedByte {
+            Err(NameFromBytesError::DisallowedByte {
                 byte: 33, // '!'
                 index: 1
             })

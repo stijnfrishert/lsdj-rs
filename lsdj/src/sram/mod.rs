@@ -6,7 +6,7 @@ pub mod song;
 
 mod name;
 
-pub use name::{FromBytesError, Name};
+pub use name::{Name, NameFromBytesError};
 pub use project::Project;
 
 use crate::u5;
@@ -62,11 +62,40 @@ impl SRam {
         self.alloc_table().iter().any(|block| *block == index)
     }
 
+    /// Retrieve a full project: its name, version and _decompressing its song data_.
+    pub fn project(&self, index: u5) -> Option<Result<Project, ProjectRetrieveError>> {
+        let song = self.decompress_song_memory(index)?;
+        let song = match song {
+            Ok(song) => song,
+            Err(err) => return Some(Err(ProjectRetrieveError::Decompression(err))),
+        };
+
+        let name = match self
+            .project_name(index)
+            .expect("A name should be available, because a song is")
+        {
+            Ok(name) => name,
+            Err(err) => return Some(Err(ProjectRetrieveError::Name(err))),
+        };
+
+        let version = self
+            .project_version(index)
+            .expect("A version should be available, because a song is");
+
+        Some(Ok(Project {
+            name,
+            version,
+            song,
+        }))
+    }
+
     /// Retrieve the name of one of the projects _without decompressing it first_.
     ///
     /// If a project is not use, its name is non-sensical. [`None`] is returned (even though
     /// memory for a name may exist).
-    pub fn project_name(&self, index: u5) -> Option<Result<Name<8>, FromBytesError>> {
+    ///
+    /// Be aware that if you need all of a project's data, calling [`Self::project()`] directly is more efficient.
+    pub fn project_name(&self, index: u5) -> Option<Result<Name<8>, NameFromBytesError>> {
         if self.is_project_in_use(index) {
             let offset = u8::from(index) as usize * 8;
             Some(Name::from_bytes(&self.blocks[offset..offset + 8]))
@@ -122,6 +151,19 @@ pub enum SRamReadError {
     /// Any failure that has to do with I/O
     #[error("Something failed with I/O")]
     Io(#[from] io::Error),
+}
+
+/// An error describing what could go wrong retrieving a full [`Project`] from [`SRam`].
+#[derive(Debug, Error)]
+pub enum ProjectRetrieveError {
+    /// All correctly initialized SRAM memory has certain magic bytes set.
+    /// This error is returned when that isn't the case during an SRAM read.
+    #[error("Retrieving the name failed")]
+    Name(#[from] NameFromBytesError),
+
+    /// Any failure that has to do with I/O
+    #[error("Decompressing the song failed")]
+    Decompression(#[from] io::Error),
 }
 
 #[cfg(test)]
