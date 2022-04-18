@@ -8,6 +8,7 @@ pub use name::{FromBytesError, Name};
 use crate::u5;
 use song::SongMemory;
 use std::io::{self, Read};
+use thiserror::Error;
 
 pub struct Sav {
     working_memory_song: SongMemory,
@@ -15,7 +16,7 @@ pub struct Sav {
 }
 
 impl Sav {
-    pub fn from_reader<R>(mut reader: R) -> io::Result<Self>
+    pub fn from_reader<R>(mut reader: R) -> Result<Self, SavReadError>
     where
         R: Read,
     {
@@ -24,6 +25,10 @@ impl Sav {
 
         let mut blocks = [0; 0x18000];
         reader.read_exact(blocks.as_mut_slice())?;
+
+        if blocks[0x13E] != 0x6A && blocks[0x13F] != 0x6B {
+            return Err(SavReadError::SramCheckIncorrect);
+        }
 
         Ok(Self {
             working_memory_song: SongMemory(wm),
@@ -79,6 +84,15 @@ impl Sav {
     fn alloc_table(&self) -> &[u8] {
         &self.blocks[0x141..0x1FF]
     }
+}
+
+#[derive(Debug, Error)]
+pub enum SavReadError {
+    #[error("The SRAM initialization check failed")]
+    SramCheckIncorrect,
+
+    #[error("Something failed with I/O")]
+    Io(#[from] io::Error),
 }
 
 #[cfg(test)]
