@@ -1,8 +1,7 @@
-use super::song::SongMemory;
-use str_buf::StrBuf;
+use super::{song::SongMemory, Name};
 
 pub struct Project {
-    pub name: StrBuf<8>,
+    pub name: Name<8>,
     pub version: u8,
     pub song: SongMemory,
 }
