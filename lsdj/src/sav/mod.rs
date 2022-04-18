@@ -1,16 +1,21 @@
-pub mod project;
+//! Anything having to do with LSDJ save files/SRAM (versus the ROM)
+
+mod project;
 pub mod serde;
 pub mod song;
 
 mod name;
+
 pub use name::{FromBytesError, Name};
+pub use project::Project;
 
 use crate::u5;
-use serde::decompress::decompress;
+use serde::decompress;
 use song::SongMemory;
 use std::io::{self, Read};
 use thiserror::Error;
 
+/// The SRAM of a full LSDJ save file
 pub struct Sav {
     working_memory_song: SongMemory,
     blocks: [u8; 0x18000],
@@ -104,11 +109,15 @@ impl Sav {
     }
 }
 
+/// An error describing what could go wrong reading a [`Sav`] from I/O
 #[derive(Debug, Error)]
 pub enum SavReadError {
+    /// All correctly initialized SRAM memory has certain magic bytes set.
+    /// This error is returned when that isn't the case during an SRAM read.
     #[error("The SRAM initialization check failed")]
     SramCheckIncorrect,
 
+    /// Any failure that has to do with I/O
     #[error("Something failed with I/O")]
     Io(#[from] io::Error),
 }

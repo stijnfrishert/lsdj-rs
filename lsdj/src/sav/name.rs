@@ -25,7 +25,7 @@ impl<const N: usize> Name<N> {
             match *byte {
                 byte if Self::is_byte_allowed(byte) => dest[index] = byte,
                 0 => break,
-                _ => return Err(FromBytesError::DisallowedChar { byte: *byte, index }),
+                _ => return Err(FromBytesError::DisallowedByte { byte: *byte, index }),
             }
         }
 
@@ -75,11 +75,13 @@ impl<const N: usize> fmt::Display for Name<N> {
 /// An error describing what could go wrong converting a byte slice to a [`Name`]
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum FromBytesError {
+    /// Error case for when the source slice is too big to fit in the [`Name`] string.
     #[error("The slice did not fit in the name array")]
     TooLong,
 
+    /// Only a specific subset of ASCII characters are allowed in [`Name`] strings.
     #[error("Byte {byte} at position {index} is not allowed as a name character")]
-    DisallowedChar { byte: u8, index: usize },
+    DisallowedByte { byte: u8, index: usize },
 }
 
 #[cfg(test)]
@@ -103,7 +105,7 @@ mod tests {
 
         assert_eq!(
             Name::<8>::from_bytes("A!".as_bytes()),
-            Err(FromBytesError::DisallowedChar {
+            Err(FromBytesError::DisallowedByte {
                 byte: 33, // '!'
                 index: 1
             })

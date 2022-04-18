@@ -1,3 +1,5 @@
+//! Song data and everything they're made of
+
 pub mod instrument;
 pub mod wave;
 

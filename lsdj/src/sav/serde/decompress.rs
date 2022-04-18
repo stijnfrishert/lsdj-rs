@@ -1,4 +1,4 @@
-use super::block::Block;
+use super::BLOCK_LEN;
 use crate::sav::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, SongMemory};
 use std::{
     io::{Cursor, Read, Result, Seek, SeekFrom, Write},
@@ -14,7 +14,7 @@ const EOF_BYTE: u8 = 0xFF;
 /// Decompress a song that starts at specific block
 pub fn decompress(blocks: &[u8; 0x18000], block: u8) -> Result<SongMemory> {
     let mut reader = Cursor::new(blocks);
-    reader.seek(SeekFrom::Start((block as usize * Block::LEN) as u64))?;
+    reader.seek(SeekFrom::Start((block as usize * BLOCK_LEN) as u64))?;
 
     let mut memory = [0; SongMemory::LEN];
     let mut writer = Cursor::new(memory.as_mut_slice());
@@ -56,7 +56,7 @@ enum Continuation {
 }
 
 fn block_position(block: u8) -> u64 {
-    (Block::LEN * block as usize) as u64
+    (BLOCK_LEN * block as usize) as u64
 }
 
 fn decompress_rle_byte<R, W>(mut reader: R, mut writer: W) -> Result<()>
