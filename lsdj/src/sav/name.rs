@@ -1,10 +1,10 @@
 use std::{fmt, str};
 use thiserror::Error;
 
-/// A null-terminated/max-char string based on a subset of ASCII
+/// A null-terminated/max-length string based on a subset of ASCII
 ///
 /// In several places in LSDJ save files (projects, instruments, speech synth) names
-/// are encoded as null-terminated strings with a max-character count.
+/// are encoded as null-terminated strings with a maximal character count.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Name<const N: usize> {
     bytes: [u8; N],
@@ -72,7 +72,7 @@ impl<const N: usize> fmt::Display for Name<N> {
     }
 }
 
-/// An error describing what could go wrong converting a byte slice to a name string
+/// An error describing what could go wrong converting a byte slice to a [`Name`]
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum FromBytesError {
     #[error("The slice did not fit in the name array")]

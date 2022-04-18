@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn empty() {
+    fn empty_92l() {
         let sav = include_bytes!("../../../../test/92L_empty.sav");
         let mut reader = Cursor::new(sav);
 

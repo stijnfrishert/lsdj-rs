@@ -7,3 +7,4 @@ version = "0.1.0"
 
 [dependencies]
 thiserror = "1.0.30"
+ux = "0.1.4"
