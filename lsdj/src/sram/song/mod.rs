@@ -25,11 +25,11 @@ impl SongMemory {
 
         let check = |offset| bytes[offset] == 0x72 && bytes[offset + 1] == 0x62;
 
-        if !check(0x1E78) || !check(0x3E80) || !check(0x7FF0) {
-            return Err(SongMemoryReadError::InitializationCheckIncorrect);
+        if check(0x1E78) || check(0x3E80) || check(0x7FF0) {
+            Ok(Self { bytes })
+        } else {
+            Err(SongMemoryReadError::InitializationCheckIncorrect)
         }
-
-        Ok(Self { bytes })
     }
 
     /// The version of the format the song is encoded in
