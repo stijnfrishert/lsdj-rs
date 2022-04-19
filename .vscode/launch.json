@@ -21,7 +21,7 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug LSDJ Tools – List",
+      "name": "Debug LSDJ Tools – Inspect",
       "cargo": {
         "args": ["build", "--bin=lsdj-tools", "--package=lsdj-tools"],
         "filter": {
@@ -29,7 +29,7 @@
           "kind": "bin"
         }
       },
-      "args": ["list", "/Users/stijn/Development/lsdj-rs/test/92L_empty.sav"],
+      "args": ["inspect", "/Users/stijn/Development/lsdj-rs/test"],
       "cwd": "${workspaceFolder}"
     },
     {

@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{fs::Filesystem, SRam};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use walkdir::{DirEntry, WalkDir};
 
 #[derive(Args)]
 pub struct InspectArgs {
@@ -10,11 +11,30 @@ pub struct InspectArgs {
 }
 
 pub fn inspect(args: &InspectArgs) -> Result<()> {
-    let sram = SRam::from_file(&args.path).context("Reading the SRAM from file failed")?;
+    let paths: Vec<_> = WalkDir::new(&args.path)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter_map(get_path_if_valid)
+        .collect();
+
+    if let Some((last, rest)) = paths.split_last() {
+        for path in rest {
+            print(path)?;
+            println!();
+        }
+
+        print(last)?;
+    }
+
+    Ok(())
+}
+
+fn print(path: &Path) -> Result<()> {
+    let sram = SRam::from_file(&path).context("Reading the SRAM from file failed")?;
 
     println!(
         "{:<32}Mem {}/{}",
-        args.path.file_name().unwrap().to_string_lossy(),
+        path.file_name().unwrap().to_string_lossy(),
         sram.filesystem.blocks_used_count(),
         Filesystem::BLOCKS_CAPACITY
     );
@@ -33,4 +53,30 @@ pub fn inspect(args: &InspectArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_path_if_valid(entry: DirEntry) -> Option<PathBuf> {
+    if !is_hidden(&entry) {
+        let path = entry.path();
+        if has_supported_extension(path) {
+            return Some(path.to_owned());
+        }
+    }
+
+    None
+}
+
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with('.'))
+        .unwrap_or(false)
+}
+
+fn has_supported_extension(path: &Path) -> bool {
+    match path.extension() {
+        Some(ext) => ext == "sav",
+        None => false,
+    }
 }
