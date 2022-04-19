@@ -6,7 +6,7 @@ use crate::sram::{
     song::{SongMemory, SongMemoryReadError},
 };
 use std::{
-    io::{self, Cursor, Read, Seek, SeekFrom},
+    io::{self, Cursor, Read, Seek, SeekFrom, Write},
     slice,
 };
 use thiserror::Error;
@@ -45,6 +45,19 @@ impl LsdSng {
         })
     }
 
+    /// Serialize the LsdSng to bytes
+    pub fn to_writer<W>(&self, mut writer: W) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        writer.write_all(self.name.bytes())?;
+        writer.write_all(slice::from_ref(&self.version))?;
+        writer.write_all(&self.blocks)?;
+
+        Ok(())
+    }
+
+    /// Decompress the song stored in the [`LsdSng`]
     pub fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
         let mut reader = Cursor::new(&self.blocks);
         let mut memory = [0; SongMemory::LEN];
@@ -84,8 +97,8 @@ mod tests {
     fn empty() {
         use std::io::Cursor;
 
-        let lsdsng =
-            LsdSng::from_reader(Cursor::new(include_bytes!("../../../test/empty.lsdprj"))).unwrap();
+        let source = include_bytes!("../../../test/empty.lsdprj");
+        let lsdsng = LsdSng::from_reader(Cursor::new(source)).unwrap();
 
         assert_eq!(
             lsdsng.name,
@@ -96,5 +109,10 @@ mod tests {
 
         let song = lsdsng.decompress().unwrap();
         assert_eq!(song.format_version(), 0x16);
+
+        let mut dest = vec![0; source.len()];
+        lsdsng.to_writer(Cursor::new(&mut dest)).unwrap();
+
+        assert_eq!(&dest, source);
     }
 }

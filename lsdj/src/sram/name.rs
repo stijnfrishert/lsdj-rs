@@ -33,6 +33,11 @@ impl<const N: usize> Name<N> {
         Ok(Self { bytes: dest })
     }
 
+    /// Gain access to the underlying bytes that make up the name
+    pub fn bytes(&self) -> &[u8; N] {
+        &self.bytes
+    }
+
     /// The number of characters in the name string
     pub fn len(&self) -> usize {
         self.bytes.iter().position(|c| *c == 0).unwrap_or(N)
