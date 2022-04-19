@@ -5,7 +5,9 @@ use std::{env::current_dir, fs::create_dir_all};
 
 use std::path::PathBuf;
 
+/// Export songs from an LSDJ save file
 #[derive(Args)]
+#[clap(author, version)]
 pub struct ExportArgs {
     /// The path to the save file to export from
     path: PathBuf,

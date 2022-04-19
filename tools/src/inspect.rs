@@ -5,7 +5,9 @@ use pathdiff::diff_paths;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
+/// Inspect LSDJ save files for their contents
 #[derive(Args)]
+#[clap(author, version)]
 pub struct InspectArgs {
     /// The path to the file to inspect
     path: PathBuf,

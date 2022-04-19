@@ -1,4 +1,6 @@
 [package]
+authors = ["Stijn Frishert"]
+description = "A set of tools for working with LSDJ files"
 edition = "2021"
 name = "lsdj-tools"
 version = "0.1.0"
