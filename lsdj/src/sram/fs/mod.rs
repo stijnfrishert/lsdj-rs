@@ -198,3 +198,38 @@ impl<'a> File<'a> {
         self.fs.file_contents(self.index).unwrap()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::u5;
+
+    #[test]
+    fn empty_92l() {
+        use std::io::Cursor;
+
+        let filesystem = {
+            let mut bytes = Cursor::new(include_bytes!("../../../../test/92L_empty.sav"));
+            bytes
+                .seek(SeekFrom::Start(0x8000))
+                .expect("Could not seek to filesystem start");
+            Filesystem::from_reader(bytes).expect("could not parse filesystem")
+        };
+
+        assert_eq!(filesystem.active_file(), Some(u5::new(0)));
+
+        assert!(filesystem.is_file_in_use(u5::new(0)));
+        let file = filesystem.file(u5::new(0)).unwrap();
+        assert_eq!(
+            file.name(),
+            Ok(Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap())
+        );
+        assert_eq!(file.version(), 0);
+
+        let song = file.decompress().unwrap();
+        assert_eq!(song.format_version(), 0x16);
+
+        assert!(!filesystem.is_file_in_use(u5::new(1)));
+        assert!(filesystem.file(u5::new(1)).is_none());
+    }
+}

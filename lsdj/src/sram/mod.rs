@@ -47,33 +47,3 @@ pub enum SRamReadError {
     #[error("Reading the working memory song failed")]
     WorkingSong(#[from] SongMemoryReadError),
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::u5;
-
-    #[test]
-    fn empty_92l() {
-        use std::io::Cursor;
-
-        let sram = {
-            let bytes = Cursor::new(include_bytes!("../../../test/92L_empty.sav"));
-            SRam::from_reader(bytes).expect("could not parse SRAM")
-        };
-
-        assert_eq!(sram.filesystem.active_file(), Some(u5::new(0)));
-
-        assert!(sram.filesystem.is_file_in_use(u5::new(0)));
-        let file = sram.filesystem.file(u5::new(0)).unwrap();
-        assert_eq!(
-            file.name(),
-            Ok(Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap())
-        );
-        assert_eq!(file.version(), 0);
-        assert!(file.decompress().is_ok());
-
-        assert!(!sram.filesystem.is_file_in_use(u5::new(1)));
-        assert!(sram.filesystem.file(u5::new(1)).is_none());
-    }
-}

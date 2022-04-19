@@ -50,3 +50,20 @@ pub enum SongMemoryReadError {
     #[error("Something failed with I/O")]
     Io(#[from] io::Error),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_92l() {
+        use std::io::Cursor;
+
+        let song = {
+            let bytes = Cursor::new(include_bytes!("../../../../test/92L_empty.sav"));
+            SongMemory::from_reader(bytes).expect("could not parse song")
+        };
+
+        assert_eq!(song.format_version(), 0x16);
+    }
+}
