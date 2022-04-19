@@ -1,22 +1,22 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use lsdj::sram::SRam;
-use std::fs::File;
 
 #[derive(Parser)]
 enum Cli {
     List { path: String },
+    Export { path: String },
 }
 
 fn main() -> Result<()> {
     match Cli::parse() {
         Cli::List { path } => list(&path),
+        Cli::Export { path } => export(&path),
     }
 }
 
 fn list(path: &str) -> Result<()> {
-    let file = File::open(path).context("Opening {path} failed")?;
-    let sram = SRam::from_reader(file).context("Parsing the SRAM failed")?;
+    let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
 
     for (index, file) in sram.filesystem.files().enumerate() {
         if let Some(file) = file {
@@ -28,6 +28,18 @@ fn list(path: &str) -> Result<()> {
                 file.version(),
                 song.format_version()
             );
+        }
+    }
+
+    Ok(())
+}
+
+fn export(path: &str) -> Result<()> {
+    let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
+
+    for (_index, file) in sram.filesystem.files().enumerate() {
+        if let Some(_file) = file {
+            //
         }
     }
 

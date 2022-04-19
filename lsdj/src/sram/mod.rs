@@ -1,6 +1,7 @@
 //! Anything having to do with LSDJ SRAM/save files (versus the ROM)
 
 pub mod fs;
+pub mod lsdsng;
 pub mod name;
 pub mod song;
 
