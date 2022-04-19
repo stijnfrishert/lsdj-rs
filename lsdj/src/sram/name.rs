@@ -1,3 +1,4 @@
+//! A null-terminated/max-length string based on a subset of ASCII
 use std::{fmt, str};
 use thiserror::Error;
 
@@ -42,7 +43,7 @@ impl<const N: usize> Name<N> {
         self.len() == 0
     }
 
-    /// Convert
+    /// Convert to a string
     pub fn as_str(&self) -> &str {
         // SAFETY: Safe, because in from_bytes we check whether any of the characters are allowed
         // (that is, a subset of ASCII) anyway

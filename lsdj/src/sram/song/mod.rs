@@ -6,7 +6,7 @@ pub mod wave;
 use std::io::{self, Read};
 use thiserror::Error;
 
-/// A contiguous block of memory that represents unparsed song data.
+/// A contiguous block of memory that represents unparsed song data
 pub struct SongMemory {
     bytes: [u8; Self::LEN],
 }
@@ -38,7 +38,7 @@ impl SongMemory {
     }
 }
 
-/// An error describing what could go wrong reading a [`Song`] from I/O
+/// An error describing what could go wrong reading a [`SongMemory`] from I/O
 #[derive(Debug, Error)]
 pub enum SongMemoryReadError {
     /// All correctly initialized song memory has certain magic bytes set.

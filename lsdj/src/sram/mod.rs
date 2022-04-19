@@ -1,22 +1,21 @@
 //! Anything having to do with LSDJ SRAM/save files (versus the ROM)
 
+pub mod fs;
+pub mod name;
 pub mod song;
 
-mod fs;
-mod name;
-mod project;
-
-pub use fs::{Filesystem, FilesystemReadError};
-pub use name::{Name, NameFromBytesError};
-pub use project::Project;
-
+use fs::{Filesystem, FilesystemReadError};
+use name::{Name, NameFromBytesError};
 use song::{SongMemory, SongMemoryReadError};
 use std::io::Read;
 use thiserror::Error;
 
 /// The SRAM for a full LSDJ save
 pub struct SRam {
+    /// The song that's currently being worked on in LSDJ
     pub working_memory_song: SongMemory,
+
+    /// Compressed storage for songs not currently worked on
     pub filesystem: Filesystem,
 }
 

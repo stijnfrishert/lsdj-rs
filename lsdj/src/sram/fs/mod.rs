@@ -1,13 +1,12 @@
-//! Functionality for serializing and deserializing songs into LSDJ's block structure
+//! The filesystem that LSDJ uses to store compressed songs in the [`SRam`](crate::sram::SRam)
 
 mod decompress;
-
-pub use decompress::decompress_until_eof;
 
 use crate::sram::{
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
 };
+use decompress::decompress_until_eof;
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 use thiserror::Error;
 use ux::u5;
@@ -73,7 +72,7 @@ impl Filesystem {
         }
     }
 
-    /// Retrieve the name of one of the files _without decompressing it first_.
+    /// Retrieve the name of one of the files _without decompressing it first_
     ///
     /// If a file is not use, its name is non-sensical. [`None`] is returned (even though
     /// memory for a name may exist).
@@ -86,7 +85,7 @@ impl Filesystem {
         }
     }
 
-    /// Retrieve the version of one of the files _without decompressing it first_.
+    /// Retrieve the version of one of the files _without decompressing it first_
     ///
     /// If a file is not use, its version is non-sensical. [`None`] is returned (even though
     /// memory for a version may exist).
@@ -99,7 +98,7 @@ impl Filesystem {
         }
     }
 
-    /// Decompress a file to its [`SongMemory`].
+    /// Decompress a file to its [`SongMemory`]
     ///
     /// If a file is not use, it doesn't have any compressed song data and [`None`] is returned.
     fn file_contents(&self, index: u5) -> Option<Result<SongMemory, SongMemoryReadError>> {
@@ -159,7 +158,7 @@ pub enum FilesystemReadError {
     Io(#[from] io::Error),
 }
 
-/// Iterator over the [`File`]'s in a [`Filesystem`]
+/// Iterator over all the [`File`]'s in a [`Filesystem`]
 pub struct Files<'a> {
     fs: &'a Filesystem,
     index: u8,
@@ -179,7 +178,7 @@ impl<'a> Iterator for Files<'a> {
     }
 }
 
-/// Reference to a single file in the [`Filesystem].
+/// Reference to a single file in the [`Filesystem`]
 pub struct File<'a> {
     fs: &'a Filesystem,
     index: u5,
