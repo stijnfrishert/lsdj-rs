@@ -53,7 +53,15 @@ fn main() -> Result<()> {
 }
 
 fn inspect(args: InspectArgs) -> Result<()> {
-    let sram = SRam::from_file(args.path).context("Reading the SRAM from file failed")?;
+    let path = Path::new(&args.path);
+    let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
+
+    println!(
+        "{:<32}Mem {}/{}",
+        path.file_name().unwrap().to_string_lossy(),
+        sram.filesystem.blocks_used_count(),
+        Filesystem::BLOCKS_CAPACITY
+    );
 
     for (index, file) in sram.filesystem.files().enumerate() {
         if let Some(file) = file {

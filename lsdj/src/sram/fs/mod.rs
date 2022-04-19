@@ -25,7 +25,7 @@ impl Filesystem {
     pub(crate) const BLOCK_LEN: usize = 0x200;
 
     /// The amount of blocks available in the filesystem
-    const BLOCKS_CAPACITY: usize = 0xC0;
+    pub const BLOCKS_CAPACITY: usize = 0xC0;
 
     /// The length in bytes of the entire filesystem
     const LEN: usize = Self::BLOCK_LEN * Self::BLOCKS_CAPACITY;
@@ -71,6 +71,14 @@ impl Filesystem {
             0xFF => None,
             index => Some(u5::new(index)),
         }
+    }
+
+    /// Return the number of blocks in use
+    pub fn blocks_used_count(&self) -> usize {
+        self.alloc_table()
+            .iter()
+            .filter(|block| **block != 0xFF)
+            .count()
     }
 
     /// Retrieve the name of one of the files _without decompressing it first_
