@@ -182,7 +182,8 @@ impl<'a> File<'a> {
             .fs
             .alloc_table()
             .iter()
-            .find(|block| **block == index)
+            .enumerate()
+            .find_map(|(block, file)| if *file == index { Some(block) } else { None })
             .unwrap();
 
         // Due to some weird quirk, the indices in the block alloc table start counting at 0,
@@ -193,7 +194,7 @@ impl<'a> File<'a> {
         // alsorithm *are* 1-indexed.
         //
         // Anyway, we're doing a +1 here.
-        self.fs.decompress(first_block + 1)
+        self.fs.decompress(first_block as u8 + 1)
     }
 
     pub fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
