@@ -18,5 +18,17 @@ fn list(path: &str) -> Result<()> {
     let file = File::open(path).context("Opening {path} failed")?;
     let sram = SRam::from_reader(file).context("Parsing the SRAM failed")?;
 
+    for (index, file) in sram.filesystem.files().enumerate() {
+        if let Some(file) = file {
+            println!(
+                "{index:>2} | {:<8} | v{:02X}",
+                format!("{}", file.name().context("Could not parse the file name")?),
+                file.version()
+            );
+
+            let _song = file.decompress().context("Could not decompress file")?;
+        }
+    }
+
     Ok(())
 }

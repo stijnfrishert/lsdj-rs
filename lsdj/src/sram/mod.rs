@@ -68,16 +68,15 @@ mod tests {
         assert_eq!(sram.filesystem.active_file(), Some(u5::new(0)));
 
         assert!(sram.filesystem.is_file_in_use(u5::new(0)));
+        let file = sram.filesystem.file(u5::new(0)).unwrap();
         assert_eq!(
-            sram.filesystem.file_name(u5::new(0)),
-            Some(Ok(Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap()))
+            file.name(),
+            Ok(Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap())
         );
-        assert_eq!(sram.filesystem.file_version(u5::new(0)), Some(0));
-        sram.filesystem.file_contents(u5::new(0)).unwrap().unwrap();
+        assert_eq!(file.version(), 0);
+        assert!(file.decompress().is_ok());
 
         assert!(!sram.filesystem.is_file_in_use(u5::new(1)));
-        assert_eq!(sram.filesystem.file_name(u5::new(1)), None);
-        assert_eq!(sram.filesystem.file_version(u5::new(1)), None);
-        assert!(sram.filesystem.file_contents(u5::new(1)).is_none());
+        assert!(sram.filesystem.file(u5::new(1)).is_none());
     }
 }

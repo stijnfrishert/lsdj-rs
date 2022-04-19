@@ -16,13 +16,13 @@ pub struct Filesystem {
 
 impl Filesystem {
     /// The maximal number of files that can be stored in the filesystem
-    pub const FILES_CAPACITY: usize = 0x20;
+    const FILES_CAPACITY: usize = 0x20;
 
     /// The length in bytes of a compression block
     const BLOCK_LEN: usize = 0x200;
 
     /// The amount of blocks available in the filesystem
-    pub const BLOCKS_CAPACITY: usize = 0xC0;
+    const BLOCKS_CAPACITY: usize = 0xC0;
 
     /// The length in bytes of the entire filesystem
     const LEN: usize = Self::BLOCK_LEN * Self::BLOCKS_CAPACITY;
@@ -42,7 +42,27 @@ impl Filesystem {
         Ok(Self { bytes })
     }
 
-    /// The index of the file the working memory song is supposed to refer to
+    /// Does a file have contents?
+    pub fn is_file_in_use(&self, index: u5) -> bool {
+        let index = index.into();
+        self.alloc_table().iter().any(|block| *block == index)
+    }
+
+    /// Retrieve a file from the filesystem
+    pub fn file(&self, index: u5) -> Option<File> {
+        if self.is_file_in_use(index) {
+            Some(File { fs: self, index })
+        } else {
+            None
+        }
+    }
+
+    /// Iterate over the files in the filesystem
+    pub fn files(&self) -> Files {
+        Files { fs: self, index: 0 }
+    }
+
+    /// The index of the file the [`SRam`](crate::sram::SRam)'s working memory song is supposed to refer to
     pub fn active_file(&self) -> Option<u5> {
         match self.bytes[0x140] {
             0xFF => None,
@@ -50,17 +70,11 @@ impl Filesystem {
         }
     }
 
-    /// Does a file have contents?
-    pub fn is_file_in_use(&self, index: u5) -> bool {
-        let index = index.into();
-        self.alloc_table().iter().any(|block| *block == index)
-    }
-
     /// Retrieve the name of one of the files _without decompressing it first_.
     ///
     /// If a file is not use, its name is non-sensical. [`None`] is returned (even though
     /// memory for a name may exist).
-    pub fn file_name(&self, index: u5) -> Option<Result<Name<8>, NameFromBytesError>> {
+    fn file_name(&self, index: u5) -> Option<Result<Name<8>, NameFromBytesError>> {
         if self.is_file_in_use(index) {
             let offset = u8::from(index) as usize * 8;
             Some(Name::from_bytes(&self.bytes[offset..offset + 8]))
@@ -73,7 +87,7 @@ impl Filesystem {
     ///
     /// If a file is not use, its version is non-sensical. [`None`] is returned (even though
     /// memory for a version may exist).
-    pub fn file_version(&self, index: u5) -> Option<u8> {
+    fn file_version(&self, index: u5) -> Option<u8> {
         if self.is_file_in_use(index) {
             let offset = 0x100 + u8::from(index) as usize;
             Some(self.bytes[offset])
@@ -85,7 +99,7 @@ impl Filesystem {
     /// Decompress a file to its [`SongMemory`].
     ///
     /// If a file is not use, it doesn't have any compressed song data and [`None`] is returned.
-    pub fn file_contents(&self, index: u5) -> Option<Result<SongMemory, io::Error>> {
+    fn file_contents(&self, index: u5) -> Option<Result<SongMemory, io::Error>> {
         let index = index.into();
         self.alloc_table()
             .iter()
@@ -103,6 +117,7 @@ impl Filesystem {
             })
     }
 
+    /// Decompress a file starting at a specific block
     fn decompress(&self, block: u8) -> Result<SongMemory, io::Error> {
         let mut reader = Cursor::new(&self.bytes);
         reader.seek(SeekFrom::Start(Self::block_offset(block) as u64))?;
@@ -139,4 +154,44 @@ pub enum FilesystemReadError {
     /// Any failure that has to do with I/O
     #[error("Something failed with I/O")]
     Io(#[from] io::Error),
+}
+
+/// Iterator over the [`File`]'s in a [`Filesystem`]
+pub struct Files<'a> {
+    fs: &'a Filesystem,
+    index: u8,
+}
+
+impl<'a> Iterator for Files<'a> {
+    type Item = Option<File<'a>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if (self.index as usize) < Filesystem::FILES_CAPACITY {
+            let file = self.fs.file(u5::new(self.index));
+            self.index += 1;
+            Some(file)
+        } else {
+            None
+        }
+    }
+}
+
+/// Reference to a single file in the [`Filesystem].
+pub struct File<'a> {
+    fs: &'a Filesystem,
+    index: u5,
+}
+
+impl<'a> File<'a> {
+    pub fn name(&self) -> Result<Name<8>, NameFromBytesError> {
+        self.fs.file_name(self.index).unwrap()
+    }
+
+    pub fn version(&self) -> u8 {
+        self.fs.file_version(self.index).unwrap()
+    }
+
+    pub fn decompress(&self) -> Result<SongMemory, io::Error> {
+        self.fs.file_contents(self.index).unwrap()
+    }
 }
