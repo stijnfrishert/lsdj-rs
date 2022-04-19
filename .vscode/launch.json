@@ -43,7 +43,12 @@
           "kind": "bin"
         }
       },
-      "args": ["export", "/Users/stijn/Development/lsdj-rs/test/92L_empty.sav"],
+      "args": [
+        "export",
+        "-p",
+        "-v",
+        "/Users/stijn/Development/lsdj-rs/test/92L_empty.sav"
+      ],
       "cwd": "${workspaceFolder}"
     }
   ]

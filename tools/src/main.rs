@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use clap::Parser;
+use clap::{Args, Parser};
 use lsdj::sram::{fs::Filesystem, SRam};
 use std::{
     env::current_dir,
@@ -8,31 +8,41 @@ use std::{
 };
 
 #[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
 enum Cli {
-    List {
-        path: String,
-    },
-    Export {
-        path: String,
+    List { path: String },
+    Export(ExportArgs),
+}
 
-        /// Indices of the songs that should be exported. No indices means all songs.
-        #[clap(short, long)]
-        index: Vec<usize>,
+#[derive(Args)]
+struct ExportArgs {
+    /// The path to the save file to export from
+    path: String,
 
-        /// The destination folder to place the songs
-        #[clap(short, long)]
-        output: Option<PathBuf>,
-    },
+    /// Indices of the songs that should be exported. No indices means all songs.
+    index: Vec<usize>,
+
+    /// The destination folder to place the songs
+    #[clap(short, long)]
+    output: Option<PathBuf>,
+
+    /// Prepend the song position to the start of the filename
+    #[clap(short = 'p', long)]
+    output_pos: bool,
+
+    /// Append the song version to the end of the filename
+    #[clap(short = 'v', long)]
+    output_version: bool,
+
+    /// Use hexadecimal numbers, instead of decimal
+    #[clap(short = 'H', long)]
+    hexacedimal: bool,
 }
 
 fn main() -> Result<()> {
     match Cli::parse() {
         Cli::List { path } => list(&path),
-        Cli::Export {
-            path,
-            index,
-            output,
-        } => export(&path, index, output.as_deref()),
+        Cli::Export(args) => export(args),
     }
 }
 
@@ -55,22 +65,22 @@ fn list(path: &str) -> Result<()> {
     Ok(())
 }
 
-fn export(path: &str, mut indices: Vec<usize>, output: Option<&Path>) -> Result<()> {
-    let path = Path::new(path);
+fn export(mut args: ExportArgs) -> Result<()> {
+    let path = Path::new(&args.path);
     let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
 
-    if indices.is_empty() {
-        indices = (0..Filesystem::FILES_CAPACITY).collect();
+    if args.index.is_empty() {
+        args.index = (0..Filesystem::FILES_CAPACITY).collect();
     }
 
-    let folder = match output {
-        Some(folder) => folder.to_owned(),
+    let folder = match args.output {
+        Some(folder) => folder,
         None => current_dir().context("Could not fetch current working directory")?,
     };
     create_dir_all(&folder).context("Could not create output directory")?;
 
     for (index, file) in sram.filesystem.files().enumerate() {
-        if !indices.contains(&index) {
+        if !args.index.contains(&index) {
             continue;
         }
 
@@ -79,12 +89,25 @@ fn export(path: &str, mut indices: Vec<usize>, output: Option<&Path>) -> Result<
                 .lsdsng()
                 .context("Could not create an LsdSng from an SRAM file slot")?;
 
-            let path = folder.join(format!(
-                "{:02X}. {} v{:02X}.lsdsng",
-                index,
-                lsdsng.name.as_str(),
-                lsdsng.version
-            ));
+            let mut filename = String::new();
+            if args.output_pos {
+                if args.hexacedimal {
+                    filename.push_str(&format!("{:02X}_", index));
+                } else {
+                    filename.push_str(&format!("{:02}_", index));
+                };
+            }
+
+            filename.push_str(lsdsng.name.as_str());
+            if args.output_version {
+                if args.hexacedimal {
+                    filename.push_str(&format!("_v{:02X}", lsdsng.version));
+                } else {
+                    filename.push_str(&format!("_v{:03}", lsdsng.version));
+                }
+            }
+
+            let path = folder.join(filename).with_extension("lsdsng");
 
             lsdsng
                 .to_file(path)
