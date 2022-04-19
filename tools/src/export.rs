@@ -76,8 +76,10 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
             let path = folder.join(filename).with_extension("lsdsng");
 
             lsdsng
-                .to_file(path)
+                .to_file(&path)
                 .context("Could not write lsdsng to file")?;
+
+            println!("{:8} => {}", lsdsng.name.as_str(), path.to_string_lossy());
         }
     }
 
