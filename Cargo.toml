@@ -2,5 +2,5 @@
 
 members = [
   "lsdj",
-  "cli",
+  "tools",
 ]
