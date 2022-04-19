@@ -59,10 +59,10 @@ impl<const N: usize> Name<N> {
     pub fn is_byte_allowed(byte: u8) -> bool {
         // The only allowed characters are the capitals A-Z, digits 0-9, space or the special
         // lightning bolt character
-        (65..=90).contains(&byte)
-            || (48..=57).contains(&byte)
-            || byte == 20
-            || byte == Self::LIGHTNING_BOLT_CHAR
+        (65..=90).contains(&byte) // A-Z
+            || (48..=57).contains(&byte) // 0-9
+            || byte == 32 // space
+            || byte == Self::LIGHTNING_BOLT_CHAR // x
     }
 }
 
