@@ -68,7 +68,7 @@ fn inspect(args: InspectArgs) -> Result<()> {
             let song = file.decompress().context("Could not decompress file")?;
 
             println!(
-                "{index:>2} | {:<8} | v{:02X} | f{:02X}",
+                "{index:>3} | {:<8} | v{:03} | f{:03}",
                 format!("{}", file.name().context("Could not parse the file name")?),
                 file.version(),
                 song.format_version()
