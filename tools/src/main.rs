@@ -79,7 +79,12 @@ fn export(path: &str, mut indices: Vec<usize>, output: Option<&Path>) -> Result<
                 .lsdsng()
                 .context("Could not create an LsdSng from an SRAM file slot")?;
 
-            let path = folder.join(lsdsng.name.as_str()).with_extension("lsdsng");
+            let path = folder.join(format!(
+                "{:02X}. {} v{:02X}.lsdsng",
+                index,
+                lsdsng.name.as_str(),
+                lsdsng.version
+            ));
 
             lsdsng
                 .to_file(path)
