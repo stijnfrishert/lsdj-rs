@@ -13,7 +13,7 @@ pub struct Name<const N: usize> {
 
 impl<const N: usize> Name<N> {
     // The special lightning bolt character (the actual glyph depends on your ROM)
-    const LIGHTNING_BOLT_CHAR: u8 = 95;
+    const LIGHTNING_BOLT_CHAR: u8 = 120; // x
 
     /// Try to convert a byte slice to a name
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, NameFromBytesError> {
