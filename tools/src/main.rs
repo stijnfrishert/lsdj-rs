@@ -1,18 +1,26 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use lsdj::sram::SRam;
+use lsdj::sram::{fs::Filesystem, SRam};
 use std::{env::current_dir, path::Path};
 
 #[derive(Parser)]
 enum Cli {
-    List { path: String },
-    Export { path: String },
+    List {
+        path: String,
+    },
+    Export {
+        path: String,
+
+        /// Indices of the songs that should be exported. No indices means all songs.
+        #[clap(short, long)]
+        index: Vec<usize>,
+    },
 }
 
 fn main() -> Result<()> {
     match Cli::parse() {
         Cli::List { path } => list(&path),
-        Cli::Export { path } => export(&path),
+        Cli::Export { path, index } => export(&path, index),
     }
 }
 
@@ -35,11 +43,19 @@ fn list(path: &str) -> Result<()> {
     Ok(())
 }
 
-fn export(path: &str) -> Result<()> {
+fn export(path: &str, mut indices: Vec<usize>) -> Result<()> {
     let path = Path::new(path);
     let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
 
-    for (_index, file) in sram.filesystem.files().enumerate() {
+    if indices.is_empty() {
+        indices = (0..Filesystem::FILES_CAPACITY).collect();
+    }
+
+    for (index, file) in sram.filesystem.files().enumerate() {
+        if !indices.contains(&index) {
+            continue;
+        }
+
         if let Some(file) = file {
             let lsdsng = file
                 .lsdsng()

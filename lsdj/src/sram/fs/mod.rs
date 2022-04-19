@@ -19,7 +19,7 @@ pub struct Filesystem {
 
 impl Filesystem {
     /// The maximal number of files that can be stored in the filesystem
-    const FILES_CAPACITY: usize = 0x20;
+    pub const FILES_CAPACITY: usize = 0x20;
 
     /// The length in bytes of a compression block
     pub(crate) const BLOCK_LEN: usize = 0x200;
