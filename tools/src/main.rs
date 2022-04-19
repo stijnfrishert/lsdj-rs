@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use lsdj::sram::SRam;
+use std::{env::current_dir, path::Path};
 
 #[derive(Parser)]
 enum Cli {
@@ -35,11 +36,23 @@ fn list(path: &str) -> Result<()> {
 }
 
 fn export(path: &str) -> Result<()> {
+    let path = Path::new(path);
     let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
 
     for (_index, file) in sram.filesystem.files().enumerate() {
-        if let Some(_file) = file {
-            //
+        if let Some(file) = file {
+            let lsdsng = file
+                .lsdsng()
+                .context("Could not create an LsdSng from an SRAM file slot")?;
+
+            let path = current_dir()
+                .unwrap()
+                .join(lsdsng.name.as_str())
+                .with_extension("lsdsng");
+
+            lsdsng
+                .to_file(path)
+                .context("Could not write lsdsng to file")?;
         }
     }
 

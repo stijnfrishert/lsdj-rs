@@ -3,6 +3,7 @@
 pub mod decompress;
 
 use crate::sram::{
+    lsdsng::LsdSng,
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
 };
@@ -141,9 +142,25 @@ impl Filesystem {
         Self::BLOCK_LEN * block as usize
     }
 
+    /// Access the bytes belonging to a specific block
+    fn block(&self, block: u8) -> &[u8] {
+        let offset = Self::block_offset(block);
+        &self.bytes[offset..offset + Self::BLOCK_LEN]
+    }
+
     /// Return the part of block 0 that represents the block allocation table
     fn alloc_table(&self) -> &[u8] {
         &self.bytes[0x141..0x1FF]
+    }
+
+    /// Retrieve the indices of the blocks for a specific file
+    fn file_block_indices(&self, file: u5) -> Vec<usize> {
+        let file = file.into();
+        self.alloc_table()
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, f)| if *f == file { Some(idx + 1) } else { None })
+            .collect()
     }
 }
 
@@ -198,6 +215,27 @@ impl<'a> File<'a> {
     pub fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
         self.fs.file_contents(self.index).unwrap()
     }
+
+    pub fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
+        let name = self.name()?;
+
+        let indices = self.fs.file_block_indices(self.index);
+        let mut blocks = Vec::with_capacity(Filesystem::BLOCK_LEN * indices.len());
+        for idx in indices {
+            blocks.extend_from_slice(self.fs.block(idx as u8));
+        }
+
+        Ok(LsdSng::new(name, self.version(), blocks))
+    }
+}
+
+/// An error describing what could go wrong convering a [`File`] to an [`LsdSng`]
+#[derive(Debug, Error)]
+pub enum FileToLsdSngError {
+    /// All correctly initialized filesystem memory has certain magic bytes set.
+    /// This error is returned when that isn't the case during a read.
+    #[error("The initialization check failed")]
+    Name(#[from] NameFromBytesError),
 }
 
 #[cfg(test)]

@@ -6,7 +6,9 @@ use crate::sram::{
     song::{SongMemory, SongMemoryReadError},
 };
 use std::{
+    fs::File,
     io::{self, Cursor, Read, Seek, SeekFrom, Write},
+    path::Path,
     slice,
 };
 use thiserror::Error;
@@ -21,6 +23,14 @@ pub struct LsdSng {
 }
 
 impl LsdSng {
+    pub(crate) fn new(name: Name<8>, version: u8, blocks: Vec<u8>) -> Self {
+        Self {
+            name,
+            version,
+            blocks,
+        }
+    }
+
     /// Read an LsdSng from I/O
     pub fn from_reader<R>(mut reader: R) -> Result<LsdSng, LsdsngFromReaderError>
     where
@@ -55,6 +65,14 @@ impl LsdSng {
         writer.write_all(&self.blocks)?;
 
         Ok(())
+    }
+
+    // Serialize the LsdSng to a file
+    pub fn to_file<P>(&self, path: P) -> Result<(), io::Error>
+    where
+        P: AsRef<Path>,
+    {
+        self.to_writer(File::create(path)?)
     }
 
     /// Decompress the song stored in the [`LsdSng`]
@@ -97,7 +115,7 @@ mod tests {
     fn empty() {
         use std::io::Cursor;
 
-        let source = include_bytes!("../../../test/empty.lsdprj");
+        let source = include_bytes!("../../../test/92L_empty.lsdsng");
         let lsdsng = LsdSng::from_reader(Cursor::new(source)).unwrap();
 
         assert_eq!(

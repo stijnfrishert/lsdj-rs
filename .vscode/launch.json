@@ -1,27 +1,50 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in library 'lsdj'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib",
-                    "--package=lsdj"
-                ],
-                "filter": {
-                    "name": "lsdj",
-                    "kind": "lib"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=lsdj"],
+        "filter": {
+          "name": "lsdj",
+          "kind": "lib"
         }
-    ]
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug LSDJ Tools – List",
+      "cargo": {
+        "args": ["build", "--bin=lsdj-tools", "--package=lsdj-tools"],
+        "filter": {
+          "name": "lsdj-tools",
+          "kind": "bin"
+        }
+      },
+      "args": ["list", "/Users/stijn/Development/lsdj-rs/test/92L_empty.sav"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug LSDJ Tools – Export",
+      "cargo": {
+        "args": ["build", "--bin=lsdj-tools", "--package=lsdj-tools"],
+        "filter": {
+          "name": "lsdj-tools",
+          "kind": "bin"
+        }
+      },
+      "args": ["export", "/Users/stijn/Development/lsdj-rs/test/92L_empty.sav"],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
 }
