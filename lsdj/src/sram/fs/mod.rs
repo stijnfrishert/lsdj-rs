@@ -81,53 +81,6 @@ impl Filesystem {
             .count()
     }
 
-    /// Retrieve the name of one of the files _without decompressing it first_
-    ///
-    /// If a file is not use, its name is non-sensical. [`None`] is returned (even though
-    /// memory for a name may exist).
-    fn file_name(&self, index: u5) -> Option<Result<Name<8>, NameFromBytesError>> {
-        if self.is_file_in_use(index) {
-            let offset = u8::from(index) as usize * 8;
-            Some(Name::from_bytes(&self.bytes[offset..offset + 8]))
-        } else {
-            None
-        }
-    }
-
-    /// Retrieve the version of one of the files _without decompressing it first_
-    ///
-    /// If a file is not use, its version is non-sensical. [`None`] is returned (even though
-    /// memory for a version may exist).
-    fn file_version(&self, index: u5) -> Option<u8> {
-        if self.is_file_in_use(index) {
-            let offset = 0x100 + u8::from(index) as usize;
-            Some(self.bytes[offset])
-        } else {
-            None
-        }
-    }
-
-    /// Decompress a file to its [`SongMemory`]
-    ///
-    /// If a file is not use, it doesn't have any compressed song data and [`None`] is returned.
-    fn file_contents(&self, index: u5) -> Option<Result<SongMemory, SongMemoryReadError>> {
-        let index = index.into();
-        self.alloc_table()
-            .iter()
-            .find(|block| **block == index)
-            .map(|block| {
-                // Due to some weird quirk, the indices in the block alloc table start counting at 0,
-                // while the first block is always used for the block meta-data (and block 1 and upward
-                // are actually used for file data).
-                //
-                // This is weird, because the block values for the "jump to block" command in the compression
-                // alsorithm *are* 1-indexed.
-                //
-                // Anyway, we're doing a +1 here.
-                self.decompress(block + 1)
-            })
-    }
-
     /// Decompress a file starting at a specific block
     fn decompress(&self, block: u8) -> Result<SongMemory, SongMemoryReadError> {
         let mut reader = Cursor::new(&self.bytes);
@@ -213,15 +166,34 @@ pub struct File<'a> {
 
 impl<'a> File<'a> {
     pub fn name(&self) -> Result<Name<8>, NameFromBytesError> {
-        self.fs.file_name(self.index).unwrap()
+        let offset = u8::from(self.index) as usize * 8;
+        Name::from_bytes(&self.fs.bytes[offset..offset + 8])
     }
 
     pub fn version(&self) -> u8 {
-        self.fs.file_version(self.index).unwrap()
+        let offset = 0x100 + u8::from(self.index) as usize;
+        self.fs.bytes[offset]
     }
 
     pub fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
-        self.fs.file_contents(self.index).unwrap()
+        let index = self.index.into();
+
+        let first_block = self
+            .fs
+            .alloc_table()
+            .iter()
+            .find(|block| **block == index)
+            .unwrap();
+
+        // Due to some weird quirk, the indices in the block alloc table start counting at 0,
+        // while the first block is always used for the block meta-data (and block 1 and upward
+        // are actually used for file data).
+        //
+        // This is weird, because the block values for the "jump to block" command in the compression
+        // alsorithm *are* 1-indexed.
+        //
+        // Anyway, we're doing a +1 here.
+        self.fs.decompress(first_block + 1)
     }
 
     pub fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
