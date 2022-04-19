@@ -20,13 +20,14 @@ fn list(path: &str) -> Result<()> {
 
     for (index, file) in sram.filesystem.files().enumerate() {
         if let Some(file) = file {
-            println!(
-                "{index:>2} | {:<8} | v{:02X}",
-                format!("{}", file.name().context("Could not parse the file name")?),
-                file.version()
-            );
+            let song = file.decompress().context("Could not decompress file")?;
 
-            let _song = file.decompress().context("Could not decompress file")?;
+            println!(
+                "{index:>2} | {:<8} | v{:02X} | f{:02X}",
+                format!("{}", file.name().context("Could not parse the file name")?),
+                file.version(),
+                song.format_version()
+            );
         }
     }
 
