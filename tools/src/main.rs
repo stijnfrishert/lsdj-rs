@@ -10,8 +10,14 @@ use std::{
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 enum Cli {
-    List { path: String },
+    Inspect(InspectArgs),
     Export(ExportArgs),
+}
+
+#[derive(Args)]
+struct InspectArgs {
+    /// The path to the file to inspect
+    path: String,
 }
 
 #[derive(Args)]
@@ -41,13 +47,13 @@ struct ExportArgs {
 
 fn main() -> Result<()> {
     match Cli::parse() {
-        Cli::List { path } => list(&path),
+        Cli::Inspect(args) => inspect(args),
         Cli::Export(args) => export(args),
     }
 }
 
-fn list(path: &str) -> Result<()> {
-    let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
+fn inspect(args: InspectArgs) -> Result<()> {
+    let sram = SRam::from_file(args.path).context("Reading the SRAM from file failed")?;
 
     for (index, file) in sram.filesystem.files().enumerate() {
         if let Some(file) = file {
