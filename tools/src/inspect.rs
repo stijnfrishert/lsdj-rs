@@ -47,11 +47,7 @@ fn print(path: &Path, args: &InspectArgs) -> Result<()> {
     let path = diff_paths(path, &args.path).unwrap();
 
     println!("{}", path.to_string_lossy());
-    println!(
-        "Memory {}/{}",
-        sram.filesystem.blocks_used_count(),
-        Filesystem::BLOCKS_CAPACITY
-    );
+    print_mem(&sram);
 
     for (index, file) in sram.filesystem.files().enumerate() {
         if let Some(file) = file {
@@ -67,6 +63,20 @@ fn print(path: &Path, args: &InspectArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn print_mem(sram: &SRam) {
+    const BAR_LEN: usize = 24;
+    let blocks = sram.filesystem.blocks_used_count();
+    let bar = blocks * BAR_LEN / Filesystem::BLOCKS_CAPACITY;
+
+    println!(
+        "Mem {:03}/{:03}    [{}{}]",
+        blocks,
+        Filesystem::BLOCKS_CAPACITY,
+        "=".repeat(bar),
+        " ".repeat(BAR_LEN - bar)
+    );
 }
 
 fn get_path_if_valid(entry: DirEntry) -> Option<PathBuf> {
