@@ -1,7 +1,11 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use lsdj::sram::{fs::Filesystem, SRam};
-use std::{env::current_dir, path::Path};
+use std::{
+    env::current_dir,
+    fs::create_dir_all,
+    path::{Path, PathBuf},
+};
 
 #[derive(Parser)]
 enum Cli {
@@ -14,13 +18,21 @@ enum Cli {
         /// Indices of the songs that should be exported. No indices means all songs.
         #[clap(short, long)]
         index: Vec<usize>,
+
+        /// The destination folder to place the songs
+        #[clap(short, long)]
+        output: Option<PathBuf>,
     },
 }
 
 fn main() -> Result<()> {
     match Cli::parse() {
         Cli::List { path } => list(&path),
-        Cli::Export { path, index } => export(&path, index),
+        Cli::Export {
+            path,
+            index,
+            output,
+        } => export(&path, index, output.as_deref()),
     }
 }
 
@@ -43,13 +55,19 @@ fn list(path: &str) -> Result<()> {
     Ok(())
 }
 
-fn export(path: &str, mut indices: Vec<usize>) -> Result<()> {
+fn export(path: &str, mut indices: Vec<usize>, output: Option<&Path>) -> Result<()> {
     let path = Path::new(path);
     let sram = SRam::from_file(path).context("Reading the SRAM from file failed")?;
 
     if indices.is_empty() {
         indices = (0..Filesystem::FILES_CAPACITY).collect();
     }
+
+    let folder = match output {
+        Some(folder) => folder.to_owned(),
+        None => current_dir().context("Could not fetch current working directory")?,
+    };
+    create_dir_all(&folder).context("Could not create output directory")?;
 
     for (index, file) in sram.filesystem.files().enumerate() {
         if !indices.contains(&index) {
@@ -61,10 +79,7 @@ fn export(path: &str, mut indices: Vec<usize>) -> Result<()> {
                 .lsdsng()
                 .context("Could not create an LsdSng from an SRAM file slot")?;
 
-            let path = current_dir()
-                .unwrap()
-                .join(lsdsng.name.as_str())
-                .with_extension("lsdsng");
+            let path = folder.join(lsdsng.name.as_str()).with_extension("lsdsng");
 
             lsdsng
                 .to_file(path)
