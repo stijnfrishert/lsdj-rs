@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{fs::Filesystem, SRam};
+use pathdiff::diff_paths;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
@@ -19,20 +20,22 @@ pub fn inspect(args: &InspectArgs) -> Result<()> {
 
     if let Some((last, rest)) = paths.split_last() {
         for path in rest {
-            print(path)?;
+            print(path, args)?;
             println!();
         }
 
-        print(last)?;
+        print(last, args)?;
     }
 
     Ok(())
 }
 
-fn print(path: &Path) -> Result<()> {
+fn print(path: &Path, args: &InspectArgs) -> Result<()> {
     let sram = SRam::from_file(&path).context("Reading the SRAM from file failed")?;
 
-    println!("{}", path.file_name().unwrap().to_string_lossy(),);
+    let path = diff_paths(path, &args.path).unwrap();
+
+    println!("{}", path.to_string_lossy());
     println!(
         "Memory {}/{}",
         sram.filesystem.blocks_used_count(),
