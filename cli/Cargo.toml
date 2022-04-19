@@ -1,6 +1,5 @@
 [package]
 edition = "2021"
-filename = "lsdj"
 name = "cli"
 version = "0.1.0"
 

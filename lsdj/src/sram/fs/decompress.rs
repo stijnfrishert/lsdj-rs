@@ -1,7 +1,7 @@
-use super::BLOCK_LEN;
-use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE, SongMemory};
+use super::Filesystem;
+use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
-    io::{Cursor, Read, Result, Seek, SeekFrom, Write},
+    io::{Read, Result, Seek, SeekFrom, Write},
     slice,
 };
 
@@ -11,22 +11,7 @@ const DEFAULT_WAVE_BYTE: u8 = 0xF0;
 const DEFAULT_INSTRUMENT_BYTE: u8 = 0xF1;
 const EOF_BYTE: u8 = 0xFF;
 
-/// Decompress a song that starts at specific block
-pub fn decompress(blocks: &[u8; 0x18000], block: u8) -> Result<SongMemory> {
-    let mut reader = Cursor::new(blocks);
-    reader.seek(SeekFrom::Start((block as usize * BLOCK_LEN) as u64))?;
-
-    let mut memory = [0; SongMemory::LEN];
-    let mut writer = Cursor::new(memory.as_mut_slice());
-
-    decompress_until_eof(reader, &mut writer)?;
-
-    assert_eq!(writer.stream_position()?, SongMemory::LEN as u64);
-
-    Ok(SongMemory(memory))
-}
-
-fn decompress_until_eof<R, W>(mut reader: R, mut writer: W) -> Result<()>
+pub fn decompress_until_eof<R, W>(mut reader: R, mut writer: W) -> Result<()>
 where
     R: Read + Seek,
     W: Write + Seek,
@@ -56,7 +41,7 @@ enum Continuation {
 }
 
 fn block_position(block: u8) -> u64 {
-    (BLOCK_LEN * block as usize) as u64
+    (Filesystem::BLOCK_LEN * block as usize) as u64
 }
 
 fn decompress_rle_byte<R, W>(mut reader: R, mut writer: W) -> Result<()>
@@ -127,6 +112,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
 
     #[test]
     fn rle() {
