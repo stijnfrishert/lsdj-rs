@@ -9,10 +9,19 @@ use walkdir::{DirEntry, WalkDir};
 pub struct InspectArgs {
     /// The path to the file to inspect
     path: PathBuf,
+
+    /// Search the folder recursively
+    #[clap(short, long)]
+    recursive: bool,
 }
 
 pub fn inspect(args: &InspectArgs) -> Result<()> {
-    let paths: Vec<_> = WalkDir::new(&args.path)
+    let mut walk_dir = WalkDir::new(&args.path);
+    if !args.recursive {
+        walk_dir = walk_dir.max_depth(1);
+    }
+
+    let paths: Vec<_> = walk_dir
         .into_iter()
         .filter_map(Result::ok)
         .filter_map(get_path_if_valid)
