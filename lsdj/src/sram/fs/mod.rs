@@ -4,7 +4,10 @@ mod decompress;
 
 pub use decompress::decompress_until_eof;
 
-use crate::sram::{song::SongMemory, Name, NameFromBytesError};
+use crate::sram::{
+    song::{SongMemory, SongMemoryReadError},
+    Name, NameFromBytesError,
+};
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 use thiserror::Error;
 use ux::u5;
@@ -99,7 +102,7 @@ impl Filesystem {
     /// Decompress a file to its [`SongMemory`].
     ///
     /// If a file is not use, it doesn't have any compressed song data and [`None`] is returned.
-    fn file_contents(&self, index: u5) -> Option<Result<SongMemory, io::Error>> {
+    fn file_contents(&self, index: u5) -> Option<Result<SongMemory, SongMemoryReadError>> {
         let index = index.into();
         self.alloc_table()
             .iter()
@@ -118,7 +121,7 @@ impl Filesystem {
     }
 
     /// Decompress a file starting at a specific block
-    fn decompress(&self, block: u8) -> Result<SongMemory, io::Error> {
+    fn decompress(&self, block: u8) -> Result<SongMemory, SongMemoryReadError> {
         let mut reader = Cursor::new(&self.bytes);
         reader.seek(SeekFrom::Start(Self::block_offset(block) as u64))?;
 
@@ -129,7 +132,7 @@ impl Filesystem {
 
         assert_eq!(writer.stream_position()?, SongMemory::LEN as u64);
 
-        Ok(SongMemory(memory))
+        SongMemory::from_reader(Cursor::new(memory))
     }
 
     /// What's the byte offset for a given block in the filesystem?
@@ -191,7 +194,7 @@ impl<'a> File<'a> {
         self.fs.file_version(self.index).unwrap()
     }
 
-    pub fn decompress(&self) -> Result<SongMemory, io::Error> {
+    pub fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
         self.fs.file_contents(self.index).unwrap()
     }
 }

@@ -10,8 +10,8 @@ pub use fs::{Filesystem, FilesystemReadError};
 pub use name::{Name, NameFromBytesError};
 pub use project::Project;
 
-use song::SongMemory;
-use std::io::{self, Read};
+use song::{SongMemory, SongMemoryReadError};
+use std::io::Read;
 use thiserror::Error;
 
 /// The SRAM for a full LSDJ save
@@ -26,13 +26,11 @@ impl SRam {
     where
         R: Read,
     {
-        let mut wm = [0; SongMemory::LEN];
-        reader.read_exact(wm.as_mut_slice())?;
-
+        let working_memory_song = SongMemory::from_reader(&mut reader)?;
         let filesystem = Filesystem::from_reader(&mut reader)?;
 
         Ok(Self {
-            working_memory_song: SongMemory(wm),
+            working_memory_song,
             filesystem,
         })
     }
@@ -41,14 +39,13 @@ impl SRam {
 /// An error describing what could go wrong reading [`SRam`] from I/O
 #[derive(Debug, Error)]
 pub enum SRamReadError {
-    /// All correctly initialized SRAM memory has certain magic bytes set.
-    /// This error is returned when that isn't the case during an SRAM read.
+    // Reading the file system from I/O failed
     #[error("Reading the filesystem failed")]
     Filesystem(#[from] FilesystemReadError),
 
-    /// Any failure that has to do with I/O
-    #[error("Something failed with I/O")]
-    Io(#[from] io::Error),
+    // Reading the working memory song from I/O failed
+    #[error("Reading the working memory song failed")]
+    WorkingSong(#[from] SongMemoryReadError),
 }
 
 #[cfg(test)]
