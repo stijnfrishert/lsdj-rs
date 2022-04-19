@@ -32,9 +32,9 @@ pub fn inspect(args: &InspectArgs) -> Result<()> {
 fn print(path: &Path) -> Result<()> {
     let sram = SRam::from_file(&path).context("Reading the SRAM from file failed")?;
 
+    println!("{}", path.file_name().unwrap().to_string_lossy(),);
     println!(
-        "{:<32}Mem {}/{}",
-        path.file_name().unwrap().to_string_lossy(),
+        "Memory {}/{}",
         sram.filesystem.blocks_used_count(),
         Filesystem::BLOCKS_CAPACITY
     );

@@ -29,7 +29,11 @@
           "kind": "bin"
         }
       },
-      "args": ["inspect", "/Users/stijn/Development/lsdj-rs/test"],
+      "args": [
+        "inspect",
+        // "/Users/stijn/Development/lsdj-rs/test"
+        "/Users/stijn/Google Drive/lsdj/4ntler"
+      ],
       "cwd": "${workspaceFolder}"
     },
     {
