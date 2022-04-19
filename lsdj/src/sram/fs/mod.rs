@@ -1,12 +1,12 @@
 //! The filesystem that LSDJ uses to store compressed songs in the [`SRam`](crate::sram::SRam)
 
-mod decompress;
+pub mod decompress;
 
 use crate::sram::{
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
 };
-use decompress::decompress_until_eof;
+use decompress::decompress_block;
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 use thiserror::Error;
 use ux::u5;
@@ -21,7 +21,7 @@ impl Filesystem {
     const FILES_CAPACITY: usize = 0x20;
 
     /// The length in bytes of a compression block
-    const BLOCK_LEN: usize = 0x200;
+    pub(crate) const BLOCK_LEN: usize = 0x200;
 
     /// The amount of blocks available in the filesystem
     const BLOCKS_CAPACITY: usize = 0xC0;
@@ -127,7 +127,9 @@ impl Filesystem {
         let mut memory = [0; SongMemory::LEN];
         let mut writer = Cursor::new(memory.as_mut_slice());
 
-        decompress_until_eof(reader, &mut writer)?;
+        while let Some(block) = decompress_block(&mut reader, &mut writer)? {
+            reader.seek(SeekFrom::Start(Self::block_offset(block) as u64))?;
+        }
 
         assert_eq!(writer.stream_position()?, SongMemory::LEN as u64);
 

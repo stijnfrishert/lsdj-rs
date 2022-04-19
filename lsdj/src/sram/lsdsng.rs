@@ -1,8 +1,12 @@
 //! The .lsdsng format
 
-use crate::sram::name::{Name, NameFromBytesError};
+use crate::sram::{
+    fs::{decompress::decompress_block, Filesystem},
+    name::{Name, NameFromBytesError},
+    song::{SongMemory, SongMemoryReadError},
+};
 use std::{
-    io::{self, Read},
+    io::{self, Cursor, Read, Seek, SeekFrom},
     slice,
 };
 use thiserror::Error;
@@ -17,6 +21,7 @@ pub struct LsdSng {
 }
 
 impl LsdSng {
+    /// Read an LsdSng from I/O
     pub fn from_reader<R>(mut reader: R) -> Result<LsdSng, LsdsngFromReaderError>
     where
         R: Read,
@@ -39,6 +44,24 @@ impl LsdSng {
             blocks,
         })
     }
+
+    pub fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
+        let mut reader = Cursor::new(&self.blocks);
+        let mut memory = [0; SongMemory::LEN];
+        let mut writer = Cursor::new(memory.as_mut_slice());
+
+        // .lsdsng's are weird in that they completely disregard the block jump values, and
+        // assume that all blocks were serialized in order
+        let mut block = 0;
+        while decompress_block(&mut reader, &mut writer)?.is_some() {
+            block += 1;
+            reader.seek(SeekFrom::Start((block * Filesystem::BLOCK_LEN) as u64))?;
+        }
+
+        assert_eq!(writer.stream_position()?, SongMemory::LEN as u64);
+
+        SongMemory::from_reader(Cursor::new(memory))
+    }
 }
 
 /// An error describing what could go wrong reading an [`LsdSng`] from I/O
@@ -51,4 +74,27 @@ pub enum LsdsngFromReaderError {
     /// Could not read the name successfully
     #[error("Reading the name failed")]
     Name(#[from] NameFromBytesError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty() {
+        use std::io::Cursor;
+
+        let lsdsng =
+            LsdSng::from_reader(Cursor::new(include_bytes!("../../../test/empty.lsdprj"))).unwrap();
+
+        assert_eq!(
+            lsdsng.name,
+            Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap()
+        );
+
+        assert_eq!(lsdsng.version, 0);
+
+        let song = lsdsng.decompress().unwrap();
+        assert_eq!(song.format_version(), 0x16);
+    }
 }

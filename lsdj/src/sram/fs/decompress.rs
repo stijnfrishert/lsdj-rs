@@ -1,7 +1,6 @@
-use super::Filesystem;
 use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
-    io::{Read, Result, Seek, SeekFrom, Write},
+    io::{Read, Result, Seek, Write},
     slice,
 };
 
@@ -11,9 +10,9 @@ const DEFAULT_WAVE_BYTE: u8 = 0xF0;
 const DEFAULT_INSTRUMENT_BYTE: u8 = 0xF1;
 const EOF_BYTE: u8 = 0xFF;
 
-pub fn decompress_until_eof<R, W>(mut reader: R, mut writer: W) -> Result<()>
+pub fn decompress_block<R, W>(mut reader: R, mut writer: W) -> Result<Option<u8>>
 where
-    R: Read + Seek,
+    R: Read,
     W: Write + Seek,
 {
     loop {
@@ -21,16 +20,12 @@ where
             RLE_BYTE => decompress_rle_byte(&mut reader, &mut writer)?,
             CMD_BYTE => match decompress_cmd_byte(&mut reader, &mut writer)? {
                 Continuation::Continue => (),
-                Continuation::JumpToBlock(block) => {
-                    reader.seek(SeekFrom::Start(block_position(block)))?;
-                }
-                Continuation::EndOfFile => break,
+                Continuation::JumpToBlock(block) => return Ok(Some(block)),
+                Continuation::EndOfFile => return Ok(None),
             },
             value => writer.write_all(slice::from_ref(&value))?,
         }
     }
-
-    Ok(())
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -38,10 +33,6 @@ enum Continuation {
     Continue,
     JumpToBlock(u8),
     EndOfFile,
-}
-
-fn block_position(block: u8) -> u64 {
-    (Filesystem::BLOCK_LEN * block as usize) as u64
 }
 
 fn decompress_rle_byte<R, W>(mut reader: R, mut writer: W) -> Result<()>
