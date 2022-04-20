@@ -27,9 +27,9 @@ pub struct ExportArgs {
     #[clap(short = 'v', long)]
     output_version: bool,
 
-    /// Use hexadecimal numbers, instead of decimal
-    #[clap(short = 'H', long)]
-    hexacedimal: bool,
+    /// Use decimal version numbers, instead of hexadecimal
+    #[clap(short, long)]
+    decimal: bool,
 }
 
 pub fn export(mut args: ExportArgs) -> Result<()> {
@@ -57,19 +57,15 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
 
             let mut filename = String::new();
             if args.output_pos {
-                if args.hexacedimal {
-                    filename.push_str(&format!("{:02X}_", index));
-                } else {
-                    filename.push_str(&format!("{:02}_", index));
-                };
+                filename.push_str(&format!("{:02}_", index));
             }
 
             filename.push_str(lsdsng.name.as_str());
             if args.output_version {
-                if args.hexacedimal {
-                    filename.push_str(&format!("_v{:02X}", lsdsng.version));
-                } else {
+                if args.decimal {
                     filename.push_str(&format!("_v{:03}", lsdsng.version));
+                } else {
+                    filename.push_str(&format!("_v{:02X}", lsdsng.version));
                 }
             }
 
@@ -79,7 +75,12 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
                 .to_file(&path)
                 .context("Could not write lsdsng to file")?;
 
-            println!("{:8} => {}", lsdsng.name.as_str(), path.to_string_lossy());
+            println!(
+                "{:02}. {:8} => {}",
+                index,
+                lsdsng.name.as_str(),
+                path.to_string_lossy()
+            );
         }
     }
 
