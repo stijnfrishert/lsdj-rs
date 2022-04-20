@@ -1,3 +1,4 @@
+use crate::utils::{has_extension, is_hidden};
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::lsdsng::LsdSng;
@@ -16,8 +17,11 @@ pub struct ImportArgs {
 
 pub fn import(args: ImportArgs) -> Result<()> {
     let mut songs = Vec::new();
+
     for path in args.song {
-        songs.push(LsdSng::from_file(&path).context("Could not load {path}")?);
+        if !is_hidden(&path) && has_extension(&path, "lsdsng") {
+            songs.push(LsdSng::from_file(&path).context("Could not load {path}")?);
+        }
     }
 
     Ok(())
