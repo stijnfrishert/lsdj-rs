@@ -1,11 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
 
-mod export;
-mod inspect;
-
-use export::{export, ExportArgs};
-use inspect::{inspect, InspectArgs};
+use lsdj_tools::export::{export, ExportArgs};
+use lsdj_tools::inspect::{inspect, InspectArgs};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]

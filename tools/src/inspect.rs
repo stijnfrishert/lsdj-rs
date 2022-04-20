@@ -1,3 +1,4 @@
+use crate::utils::{has_extension, is_hidden};
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{fs::Filesystem, SRam};
@@ -80,27 +81,10 @@ fn print_mem(sram: &SRam) {
 }
 
 fn get_path_if_valid(entry: DirEntry) -> Option<PathBuf> {
-    if !is_hidden(&entry) {
-        let path = entry.path();
-        if has_supported_extension(path) {
-            return Some(path.to_owned());
-        }
+    let path = entry.path();
+    if !is_hidden(path) && has_extension(path, "sav") {
+        return Some(path.to_owned());
     }
 
     None
-}
-
-fn is_hidden(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false)
-}
-
-fn has_supported_extension(path: &Path) -> bool {
-    match path.extension() {
-        Some(ext) => ext == "sav",
-        None => false,
-    }
 }
