@@ -7,7 +7,7 @@ use crate::sram::{
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
 };
-use decompress::decompress_block;
+use decompress::{decompress_block, End};
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 use thiserror::Error;
 use ux::u5;
@@ -89,7 +89,7 @@ impl Filesystem {
         let mut memory = [0; SongMemory::LEN];
         let mut writer = Cursor::new(memory.as_mut_slice());
 
-        while let Some(block) = decompress_block(&mut reader, &mut writer)? {
+        while let End::JumpToBlock(block) = decompress_block(&mut reader, &mut writer)? {
             reader.seek(SeekFrom::Start(Self::block_offset(block) as u64))?;
         }
 

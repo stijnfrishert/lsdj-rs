@@ -1,7 +1,10 @@
 //! The .lsdsng format
 
 use crate::sram::{
-    fs::{decompress::decompress_block, Filesystem},
+    fs::{
+        decompress::{decompress_block, End},
+        Filesystem,
+    },
     name::{Name, NameFromBytesError},
     song::{SongMemory, SongMemoryReadError},
 };
@@ -32,7 +35,7 @@ impl LsdSng {
     }
 
     /// Read an LsdSng from I/O
-    pub fn from_reader<R>(mut reader: R) -> Result<LsdSng, LsdsngFromReaderError>
+    pub fn from_reader<R>(mut reader: R) -> Result<Self, LsdsngFromReaderError>
     where
         R: Read,
     {
@@ -53,6 +56,14 @@ impl LsdSng {
             version,
             blocks,
         })
+    }
+
+    /// Read an LsdSng from file
+    pub fn from_file<P>(path: P) -> Result<Self, LsdsngFromReaderError>
+    where
+        P: AsRef<Path>,
+    {
+        Self::from_reader(File::open(path)?)
     }
 
     /// Serialize the LsdSng to bytes
@@ -84,7 +95,7 @@ impl LsdSng {
         // .lsdsng's are weird in that they completely disregard the block jump values, and
         // assume that all blocks were serialized in order
         let mut block = 0;
-        while decompress_block(&mut reader, &mut writer)?.is_some() {
+        while decompress_block(&mut reader, &mut writer)? != End::EndOfFile {
             block += 1;
             reader.seek(SeekFrom::Start((block * Filesystem::BLOCK_LEN) as u64))?;
         }

@@ -10,7 +10,19 @@ const DEFAULT_WAVE_BYTE: u8 = 0xF0;
 const DEFAULT_INSTRUMENT_BYTE: u8 = 0xF1;
 const EOF_BYTE: u8 = 0xFF;
 
-pub fn decompress_block<R, W>(mut reader: R, mut writer: W) -> Result<Option<u8>>
+#[derive(Debug, PartialEq, Eq)]
+pub enum End {
+    JumpToBlock(u8),
+    EndOfFile,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum CmdContinuation {
+    Continue,
+    End(End),
+}
+
+pub fn decompress_block<R, W>(mut reader: R, mut writer: W) -> Result<End>
 where
     R: Read,
     W: Write + Seek,
@@ -19,20 +31,12 @@ where
         match read_byte(&mut reader)? {
             RLE_BYTE => decompress_rle_byte(&mut reader, &mut writer)?,
             CMD_BYTE => match decompress_cmd_byte(&mut reader, &mut writer)? {
-                Continuation::Continue => (),
-                Continuation::JumpToBlock(block) => return Ok(Some(block)),
-                Continuation::EndOfFile => return Ok(None),
+                CmdContinuation::Continue => (),
+                CmdContinuation::End(continuation) => return Ok(continuation),
             },
             value => writer.write_all(slice::from_ref(&value))?,
         }
     }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum Continuation {
-    Continue,
-    JumpToBlock(u8),
-    EndOfFile,
 }
 
 fn decompress_rle_byte<R, W>(mut reader: R, mut writer: W) -> Result<()>
@@ -51,7 +55,7 @@ where
     Ok(())
 }
 
-fn decompress_cmd_byte<R, W>(mut reader: R, mut writer: W) -> Result<Continuation>
+fn decompress_cmd_byte<R, W>(mut reader: R, mut writer: W) -> Result<CmdContinuation>
 where
     R: Read,
     W: Write,
@@ -66,11 +70,11 @@ where
             let count = read_byte(&mut reader)?;
             write_repeated_bytes(&DEFAULT_INSTRUMENT, count as usize, &mut writer)?
         }
-        EOF_BYTE => return Ok(Continuation::EndOfFile),
-        block => return Ok(Continuation::JumpToBlock(block)),
+        EOF_BYTE => return Ok(CmdContinuation::End(End::EndOfFile)),
+        block => return Ok(CmdContinuation::End(End::JumpToBlock(block))),
     }
 
-    Ok(Continuation::Continue)
+    Ok(CmdContinuation::Continue)
 }
 
 fn read_byte<R>(mut reader: R) -> Result<u8>
@@ -134,7 +138,7 @@ mod tests {
         assert_eq!(
             decompress_cmd_byte(Cursor::new([CMD_BYTE]), Cursor::new(plain.as_mut_slice()))
                 .unwrap(),
-            Continuation::Continue
+            CmdContinuation::Continue
         );
 
         assert_eq!(plain, [0xE0]);
@@ -150,7 +154,7 @@ mod tests {
                 Cursor::new(plain.as_mut_slice())
             )
             .unwrap(),
-            Continuation::Continue
+            CmdContinuation::Continue
         );
 
         assert_eq!(
@@ -173,7 +177,7 @@ mod tests {
                 Cursor::new(plain.as_mut_slice())
             )
             .unwrap(),
-            Continuation::Continue
+            CmdContinuation::Continue
         );
 
         assert_eq!(
@@ -191,7 +195,7 @@ mod tests {
 
         assert_eq!(
             decompress_cmd_byte(Cursor::new([4]), Cursor::new(plain.as_mut_slice())).unwrap(),
-            Continuation::JumpToBlock(4),
+            CmdContinuation::End(End::JumpToBlock(4)),
         );
     }
 
@@ -202,7 +206,7 @@ mod tests {
         assert_eq!(
             decompress_cmd_byte(Cursor::new([EOF_BYTE]), Cursor::new(plain.as_mut_slice()))
                 .unwrap(),
-            Continuation::EndOfFile
+            CmdContinuation::End(End::EndOfFile)
         );
     }
 }
