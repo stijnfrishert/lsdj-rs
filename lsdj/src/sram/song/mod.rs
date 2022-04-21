@@ -15,6 +15,13 @@ impl SongMemory {
     /// The number of bytes taken up by a single LSDJ song
     pub const LEN: usize = 0x8000;
 
+    /// Construct a new, empty song, ready for use
+    pub fn new() -> Self {
+        Self {
+            bytes: *include_bytes!("empty.raw"),
+        }
+    }
+
     /// Parse a Song from an I/O reader
     pub fn from_reader<R>(mut reader: R) -> Result<Self, SongMemoryReadError>
     where
@@ -35,6 +42,12 @@ impl SongMemory {
     /// The version of the format the song is encoded in
     pub fn format_version(&self) -> u8 {
         self.bytes[0x7FFF]
+    }
+}
+
+impl Default for SongMemory {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

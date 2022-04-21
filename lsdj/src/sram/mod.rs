@@ -25,6 +25,14 @@ pub struct SRam {
 }
 
 impl SRam {
+    /// Construct a new SRAM, with a default song and empty filesystem
+    pub fn new() -> Self {
+        Self {
+            working_memory_song: SongMemory::new(),
+            filesystem: Filesystem::new(),
+        }
+    }
+
     /// Parse SRAM from an I/O reader
     pub fn from_reader<R>(mut reader: R) -> Result<Self, SRamFromReaderError>
     where
@@ -48,6 +56,12 @@ impl SRam {
         let sram = Self::from_reader(file)?;
 
         Ok(sram)
+    }
+}
+
+impl Default for SRam {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -8,9 +8,19 @@ use crate::sram::{
     Name, NameFromBytesError,
 };
 use decompress::{decompress_block, End};
-use std::io::{self, Cursor, Read, Seek, SeekFrom};
+use std::{
+    io::{self, Cursor, Read, Seek, SeekFrom},
+    ops::Range,
+};
 use thiserror::Error;
 use ux::u5;
+
+const CHECK_RANGE: Range<usize> = 0x013E..0x0140;
+const CHECK_VALUE: [u8; 2] = [0x6A, 0x6B];
+const ACTIVE_FILE_INDEX: usize = 0x0140;
+const NO_ACTIVE_FILE: u8 = 0xFF;
+const ALLOC_TABLE_RANGE: Range<usize> = 0x0141..0x0200;
+const UNUSED_BLOCK: u8 = 0xFF;
 
 /// The file system that LSDJ uses to compress songs that are currently not being edited
 pub struct Filesystem {
@@ -30,6 +40,18 @@ impl Filesystem {
     /// The length in bytes of the entire filesystem
     const LEN: usize = Self::BLOCK_LEN * Self::BLOCKS_CAPACITY;
 
+    /// Construct a new, empty filesystem
+    pub fn new() -> Self {
+        let mut bytes = [0; Self::LEN];
+
+        bytes[CHECK_RANGE][0] = CHECK_VALUE[0];
+        bytes[CHECK_RANGE][1] = CHECK_VALUE[1];
+        bytes[ACTIVE_FILE_INDEX] = NO_ACTIVE_FILE;
+        bytes[ALLOC_TABLE_RANGE].fill(UNUSED_BLOCK);
+
+        Self { bytes }
+    }
+
     /// Parse the entire filesystem from an I/O reader
     pub fn from_reader<R>(mut reader: R) -> Result<Self, FilesystemReadError>
     where
@@ -38,7 +60,7 @@ impl Filesystem {
         let mut bytes = [0; Self::LEN];
         reader.read_exact(bytes.as_mut_slice())?;
 
-        if bytes[0x13E] != 0x6A && bytes[0x13F] != 0x6B {
+        if bytes[CHECK_RANGE] != CHECK_VALUE {
             return Err(FilesystemReadError::InitializationCheckIncorrect);
         }
 
@@ -67,8 +89,8 @@ impl Filesystem {
 
     /// The index of the file the [`SRam`](crate::sram::SRam)'s working memory song is supposed to refer to
     pub fn active_file(&self) -> Option<u5> {
-        match self.bytes[0x140] {
-            0xFF => None,
+        match self.bytes[ACTIVE_FILE_INDEX] {
+            NO_ACTIVE_FILE => None,
             index => Some(u5::new(index)),
         }
     }
@@ -77,7 +99,7 @@ impl Filesystem {
     pub fn blocks_used_count(&self) -> usize {
         self.alloc_table()
             .iter()
-            .filter(|block| **block != 0xFF)
+            .filter(|block| **block != UNUSED_BLOCK)
             .count()
     }
 
@@ -111,7 +133,7 @@ impl Filesystem {
 
     /// Return the part of block 0 that represents the block allocation table
     fn alloc_table(&self) -> &[u8] {
-        &self.bytes[0x141..0x1FF]
+        &self.bytes[ALLOC_TABLE_RANGE]
     }
 
     /// Retrieve the indices of the blocks for a specific file
@@ -136,6 +158,12 @@ pub enum FilesystemReadError {
     /// Any failure that has to do with I/O
     #[error("Something failed with I/O")]
     Io(#[from] io::Error),
+}
+
+impl Default for Filesystem {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Iterator over all the [`File`]'s in a [`Filesystem`]

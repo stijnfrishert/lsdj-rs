@@ -1,7 +1,7 @@
 use crate::utils::{has_extension, is_hidden};
 use anyhow::{Context, Result};
 use clap::Args;
-use lsdj::sram::lsdsng::LsdSng;
+use lsdj::sram::{lsdsng::LsdSng, SRam};
 use std::path::PathBuf;
 
 /// Import songs into an LSDJ save file
@@ -23,6 +23,8 @@ pub fn import(args: ImportArgs) -> Result<()> {
             songs.push(LsdSng::from_file(&path).context("Could not load {path}")?);
         }
     }
+
+    let _sram = SRam::new();
 
     Ok(())
 }
