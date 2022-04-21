@@ -10,6 +10,7 @@ use crate::sram::{
 use decompress::{decompress_block, End};
 use std::{
     io::{self, Cursor, Read, Seek, SeekFrom, Write},
+    mem::replace,
     ops::Range,
 };
 use thiserror::Error;
@@ -97,15 +98,30 @@ impl Filesystem {
     }
 
     /// Remove a file from the filesystem
-    pub fn erase_file(&mut self, index: u5) {
-        for block in self.file_block_indices(index) {
-            self.block_mut(block).fill(0);
-            self.alloc_table_mut()[(block - 1) as usize] = UNUSED_BLOCK;
-        }
+    pub fn remove_file(&mut self, index: u5) -> Option<LsdSng> {
+        if self.is_file_in_use(index) {
+            let name = {
+                let bytes = self.file_name_mut(index);
+                let name = Name::from_bytes(bytes).unwrap_or_default();
+                bytes.fill(0);
+                name
+            };
 
-        let name_offset = u8::from(index) as usize * 8;
-        self.bytes[name_offset..name_offset + 8].fill(0);
-        self.bytes[FILE_VERSIONS_RANGE.start + u8::from(index) as usize] = 0;
+            let version = replace(self.file_version_mut(index), 0);
+
+            let mut blocks = Vec::new();
+
+            for block in self.file_blocks(index) {
+                let bytes = self.block_mut(block);
+                blocks.extend_from_slice(bytes);
+                bytes.fill(0);
+                self.alloc_table_mut()[(block - 1) as usize] = UNUSED_BLOCK;
+            }
+
+            Some(LsdSng::new(name, version, blocks))
+        } else {
+            None
+        }
     }
 
     /// The index of the file the [`SRam`](crate::sram::SRam)'s working memory song is supposed to refer to
@@ -127,13 +143,13 @@ impl Filesystem {
     /// Decompress a file starting at a specific block
     fn decompress(&self, block: u8) -> Result<SongMemory, SongMemoryReadError> {
         let mut reader = Cursor::new(&self.bytes);
-        reader.seek(SeekFrom::Start(Self::block_offset(block) as u64))?;
+        reader.seek(SeekFrom::Start(Self::block_range(block).start as u64))?;
 
         let mut memory = [0; SongMemory::LEN];
         let mut writer = Cursor::new(memory.as_mut_slice());
 
         while let End::JumpToBlock(block) = decompress_block(&mut reader, &mut writer)? {
-            reader.seek(SeekFrom::Start(Self::block_offset(block) as u64))?;
+            reader.seek(SeekFrom::Start(Self::block_range(block).start as u64))?;
         }
 
         assert_eq!(writer.stream_position()?, SongMemory::LEN as u64);
@@ -141,21 +157,20 @@ impl Filesystem {
         SongMemory::from_reader(Cursor::new(memory))
     }
 
-    /// What's the byte offset for a given block in the filesystem?
-    fn block_offset(block: u8) -> usize {
-        Self::BLOCK_LEN * block as usize
+    /// What's the byte range for a given block in the filesystem?
+    fn block_range(block: u8) -> Range<usize> {
+        let offset = Self::BLOCK_LEN * block as usize;
+        offset..offset + Self::BLOCK_LEN
     }
 
     /// Access the bytes belonging to a specific block
     fn block(&self, block: u8) -> &[u8] {
-        let offset = Self::block_offset(block);
-        &self.bytes[offset..offset + Self::BLOCK_LEN]
+        &self.bytes[Self::block_range(block)]
     }
 
     /// Access the bytes belonging to a specific block
     fn block_mut(&mut self, block: u8) -> &mut [u8] {
-        let offset = Self::block_offset(block);
-        &mut self.bytes[offset..offset + Self::BLOCK_LEN]
+        &mut self.bytes[Self::block_range(block)]
     }
 
     /// Access the part of block 0 that represents the block allocation table
@@ -168,8 +183,26 @@ impl Filesystem {
         &mut self.bytes[ALLOC_TABLE_RANGE]
     }
 
+    /// Retrieve the bytes for a given file
+    fn file_name(&self, file: u5) -> &[u8] {
+        let offset = u8::from(file) as usize * 8;
+        &self.bytes[offset..offset + 8]
+    }
+
+    /// Retrieve the bytes for a given file
+    fn file_name_mut(&mut self, file: u5) -> &mut [u8] {
+        let offset = u8::from(file) as usize * 8;
+        &mut self.bytes[offset..offset + 8]
+    }
+
+    /// Retrieve the bytes for a given file
+    fn file_version_mut(&mut self, file: u5) -> &mut u8 {
+        let offset = u8::from(file) as usize;
+        &mut self.bytes[FILE_VERSIONS_RANGE][offset]
+    }
+
     /// Retrieve the indices of the blocks for a specific file
-    fn file_block_indices(&self, file: u5) -> Vec<u8> {
+    fn file_blocks(&self, file: u5) -> Vec<u8> {
         let file = file.into();
         self.alloc_table()
             .iter()
@@ -232,8 +265,7 @@ pub struct File<'a> {
 
 impl<'a> File<'a> {
     pub fn name(&self) -> Result<Name<8>, NameFromBytesError> {
-        let offset = u8::from(self.index) as usize * 8;
-        Name::from_bytes(&self.fs.bytes[offset..offset + 8])
+        Name::from_bytes(self.fs.file_name(self.index))
     }
 
     pub fn version(&self) -> u8 {
@@ -266,7 +298,7 @@ impl<'a> File<'a> {
     pub fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
         let name = self.name()?;
 
-        let indices = self.fs.file_block_indices(self.index);
+        let indices = self.fs.file_blocks(self.index);
         let mut blocks = Vec::with_capacity(Filesystem::BLOCK_LEN * indices.len());
         for idx in indices {
             blocks.extend_from_slice(self.fs.block(idx as u8));
@@ -318,7 +350,7 @@ mod tests {
         assert!(!filesystem.is_file_in_use(u5::new(1)));
         assert!(filesystem.file(u5::new(1)).is_none());
 
-        filesystem.erase_file(u5::new(0));
+        filesystem.remove_file(u5::new(0));
         assert!(!filesystem.is_file_in_use(u5::new(0)));
     }
 }
