@@ -10,7 +10,7 @@ use name::{Name, NameFromBytesError};
 use song::{SongMemory, SongMemoryReadError};
 use std::{
     fs::File,
-    io::{self, Read},
+    io::{self, Read, Write},
     path::Path,
 };
 use thiserror::Error;
@@ -33,7 +33,7 @@ impl SRam {
         }
     }
 
-    /// Parse SRAM from an I/O reader
+    /// Deserialize SRAM from an I/O reader
     pub fn from_reader<R>(mut reader: R) -> Result<Self, SRamFromReaderError>
     where
         R: Read,
@@ -47,7 +47,7 @@ impl SRam {
         })
     }
 
-    /// Parse SRAM from a file (.sav)
+    /// Deserialize SRAM from a file (.sav)
     pub fn from_file<P>(path: P) -> Result<Self, SRamFromFileError>
     where
         P: AsRef<Path>,
@@ -56,6 +56,23 @@ impl SRam {
         let sram = Self::from_reader(file)?;
 
         Ok(sram)
+    }
+
+    /// Serialize SRAM to an I/O writer
+    pub fn to_writer<W>(&self, mut writer: W) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        self.working_memory_song.to_writer(&mut writer)?;
+        self.filesystem.to_writer(writer)
+    }
+
+    /// Serialize SRAM to a file
+    pub fn to_file<P>(&self, path: P) -> Result<(), io::Error>
+    where
+        P: AsRef<Path>,
+    {
+        self.to_writer(File::create(path)?)
     }
 }
 

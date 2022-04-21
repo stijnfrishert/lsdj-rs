@@ -9,7 +9,7 @@ use crate::sram::{
 };
 use decompress::{decompress_block, End};
 use std::{
-    io::{self, Cursor, Read, Seek, SeekFrom},
+    io::{self, Cursor, Read, Seek, SeekFrom, Write},
     ops::Range,
 };
 use thiserror::Error;
@@ -52,7 +52,7 @@ impl Filesystem {
         Self { bytes }
     }
 
-    /// Parse the entire filesystem from an I/O reader
+    /// Deserialize a filesystem from an I/O reader
     pub fn from_reader<R>(mut reader: R) -> Result<Self, FilesystemReadError>
     where
         R: Read,
@@ -65,6 +65,14 @@ impl Filesystem {
         }
 
         Ok(Self { bytes })
+    }
+
+    // Serialize the filesystem to an I/O writer
+    pub fn to_writer<W>(&self, mut writer: W) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        writer.write_all(&self.bytes)
     }
 
     /// Does a file have contents?

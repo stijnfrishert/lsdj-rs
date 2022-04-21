@@ -12,7 +12,8 @@ pub struct ImportArgs {
     song: Vec<PathBuf>,
 
     /// The output path (or a default name if not provided)
-    output: Option<PathBuf>,
+    #[clap(short, long)]
+    output: PathBuf,
 }
 
 pub fn import(args: ImportArgs) -> Result<()> {
@@ -24,7 +25,11 @@ pub fn import(args: ImportArgs) -> Result<()> {
         }
     }
 
-    let _sram = SRam::new();
+    let sram = SRam::new();
+
+    sram.to_file(&args.output)
+        .context("Could not write SRAM to file")?;
+    println!("Wrote {}", args.output.to_string_lossy());
 
     Ok(())
 }

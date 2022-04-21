@@ -3,7 +3,7 @@
 pub mod instrument;
 pub mod wave;
 
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use thiserror::Error;
 
 /// A contiguous block of memory that represents unparsed song data
@@ -22,7 +22,7 @@ impl SongMemory {
         }
     }
 
-    /// Parse a Song from an I/O reader
+    /// Deserialize song memory from an I/O reader
     pub fn from_reader<R>(mut reader: R) -> Result<Self, SongMemoryReadError>
     where
         R: Read,
@@ -37,6 +37,14 @@ impl SongMemory {
         } else {
             Err(SongMemoryReadError::InitializationCheckIncorrect)
         }
+    }
+
+    /// Serialize song memory to an I/O writer
+    pub fn to_writer<W>(&self, mut writer: W) -> Result<(), io::Error>
+    where
+        W: Write,
+    {
+        writer.write_all(&self.bytes)
     }
 
     /// The version of the format the song is encoded in
