@@ -6,12 +6,18 @@ use std::{
 };
 use system_interface::io::Peek;
 
-pub fn compress_block<R, W>(mut reader: R, mut writer: W, next_block: u8) -> Result<()>
+#[derive(Debug, PartialEq, Eq)]
+pub enum Continuation {
+    Continue,
+    EndOfFile,
+}
+
+pub fn compress_block<R, W>(mut reader: R, mut writer: W, next_block: u8) -> Result<Continuation>
 where
     R: Read + Peek + BufRead + Seek,
     W: Write + Seek,
 {
-    let end = {
+    let write_end = {
         let pos = writer.stream_position()?;
         writer.seek(SeekFrom::End(0))?;
         let end = writer.stream_position()?;
@@ -19,21 +25,35 @@ where
         end
     };
 
+    let read_end = {
+        let pos = reader.stream_position()?;
+        reader.seek(SeekFrom::End(0))?;
+        let end = reader.stream_position()?;
+        reader.seek(SeekFrom::Start(pos))?;
+        end
+    };
+
     loop {
-        let pos = writer.stream_position()?;
+        if reader.stream_position().unwrap() == read_end {
+            writer.write_all(&[0xE0, 0xFF])?;
+            return Ok(Continuation::EndOfFile);
+        }
+
+        let writepos = writer.stream_position()?;
 
         // If there's still room for 3 more bytes plus *two bytes for the eventual block jump,
         // go ahead with a compression step. Otherwise, do the jump
-        if pos + 3 <= end - 2 {
-            compress_step(&mut reader, &mut writer)?;
+        if writepos + 3 <= write_end - 2 {
+            compress_step(&mut reader, &mut writer)?
         } else {
             // Write the block jump
-            return writer.write_all(&[0xE0, next_block]);
+            writer.write_all(&[0xE0, next_block])?;
+            return Ok(Continuation::Continue);
         }
     }
 }
 
-pub fn compress_step<R, W>(mut reader: R, mut writer: W) -> Result<()>
+fn compress_step<R, W>(mut reader: R, mut writer: W) -> Result<()>
 where
     R: Read + Peek + BufRead + Seek,
     W: Write,
@@ -167,9 +187,11 @@ mod tests {
     fn eof() {
         let mut dest = [0; 2];
 
-        compress_step(Cursor::new([]), Cursor::new(dest.as_mut_slice())).unwrap();
+        let continuation =
+            compress_block(Cursor::new([]), Cursor::new(dest.as_mut_slice()), 1).unwrap();
 
         assert_eq!(dest, [0xE0, 0xFF]);
+        assert_eq!(continuation, Continuation::EndOfFile);
     }
 
     #[test]
