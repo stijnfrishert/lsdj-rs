@@ -15,6 +15,7 @@ use std::{
 use thiserror::Error;
 use ux::u5;
 
+const FILE_VERSIONS_RANGE: Range<usize> = 0x0100..0x0120;
 const CHECK_RANGE: Range<usize> = 0x013E..0x0140;
 const CHECK_VALUE: [u8; 2] = [0x6A, 0x6B];
 const ACTIVE_FILE_INDEX: usize = 0x0140;
@@ -95,6 +96,18 @@ impl Filesystem {
         Files { fs: self, index: 0 }
     }
 
+    /// Remove a file from the filesystem
+    pub fn erase_file(&mut self, index: u5) {
+        for block in self.file_block_indices(index) {
+            self.block_mut(block).fill(0);
+            self.alloc_table_mut()[(block - 1) as usize] = UNUSED_BLOCK;
+        }
+
+        let name_offset = u8::from(index) as usize * 8;
+        self.bytes[name_offset..name_offset + 8].fill(0);
+        self.bytes[FILE_VERSIONS_RANGE.start + u8::from(index) as usize] = 0;
+    }
+
     /// The index of the file the [`SRam`](crate::sram::SRam)'s working memory song is supposed to refer to
     pub fn active_file(&self) -> Option<u5> {
         match self.bytes[ACTIVE_FILE_INDEX] {
@@ -139,18 +152,35 @@ impl Filesystem {
         &self.bytes[offset..offset + Self::BLOCK_LEN]
     }
 
-    /// Return the part of block 0 that represents the block allocation table
+    /// Access the bytes belonging to a specific block
+    fn block_mut(&mut self, block: u8) -> &mut [u8] {
+        let offset = Self::block_offset(block);
+        &mut self.bytes[offset..offset + Self::BLOCK_LEN]
+    }
+
+    /// Access the part of block 0 that represents the block allocation table
     fn alloc_table(&self) -> &[u8] {
         &self.bytes[ALLOC_TABLE_RANGE]
     }
 
+    /// Access the part of block 0 that represents the block allocation table
+    fn alloc_table_mut(&mut self) -> &mut [u8] {
+        &mut self.bytes[ALLOC_TABLE_RANGE]
+    }
+
     /// Retrieve the indices of the blocks for a specific file
-    fn file_block_indices(&self, file: u5) -> Vec<usize> {
+    fn file_block_indices(&self, file: u5) -> Vec<u8> {
         let file = file.into();
         self.alloc_table()
             .iter()
             .enumerate()
-            .filter_map(|(idx, f)| if *f == file { Some(idx + 1) } else { None })
+            .filter_map(|(idx, f)| {
+                if *f == file {
+                    Some(idx as u8 + 1)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 }
@@ -207,7 +237,7 @@ impl<'a> File<'a> {
     }
 
     pub fn version(&self) -> u8 {
-        let offset = 0x100 + u8::from(self.index) as usize;
+        let offset = FILE_VERSIONS_RANGE.start + u8::from(self.index) as usize;
         self.fs.bytes[offset]
     }
 
@@ -264,7 +294,7 @@ mod tests {
     fn empty_92l() {
         use std::io::Cursor;
 
-        let filesystem = {
+        let mut filesystem = {
             let mut bytes = Cursor::new(include_bytes!("../../../../test/92L_empty.sav"));
             bytes
                 .seek(SeekFrom::Start(0x8000))
@@ -287,5 +317,8 @@ mod tests {
 
         assert!(!filesystem.is_file_in_use(u5::new(1)));
         assert!(filesystem.file(u5::new(1)).is_none());
+
+        filesystem.erase_file(u5::new(0));
+        assert!(!filesystem.is_file_in_use(u5::new(0)));
     }
 }
