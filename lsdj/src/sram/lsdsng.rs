@@ -2,7 +2,7 @@
 
 use crate::sram::{
     fs::{
-        decompress::{decompress_block, End},
+        serde::decompress::{decompress_block, End},
         Filesystem,
     },
     name::{Name, NameFromBytesError},

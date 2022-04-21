@@ -1,14 +1,15 @@
 //! The filesystem that LSDJ uses to store compressed songs in the [`SRam`](crate::sram::SRam)
 
-pub mod decompress;
+pub mod serde;
 
 use crate::sram::{
     lsdsng::LsdSng,
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
 };
-use decompress::{decompress_block, End};
+use serde::decompress::{decompress_block, End};
 use std::{
+    collections::HashMap,
     io::{self, Cursor, Read, Seek, SeekFrom, Write},
     mem::replace,
     ops::Range,
@@ -95,6 +96,11 @@ impl Filesystem {
     /// Iterate over the files in the filesystem
     pub fn files(&self) -> Files {
         Files { fs: self, index: 0 }
+    }
+
+    /// Insert a new file into the filesystem
+    pub fn insert_file(&mut self, index: u5, name: &Name<8>, version: u8, song: &SongMemory) {
+        // let mut new_blocks = HashMap::new();
     }
 
     /// Remove a file from the filesystem

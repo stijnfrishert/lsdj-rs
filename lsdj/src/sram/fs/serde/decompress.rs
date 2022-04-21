@@ -1,14 +1,12 @@
+use super::utils::{
+    read_byte, write_repeated_byte, write_repeated_bytes, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE,
+    DEFAULT_WAVE_BYTE, EOF_BYTE, RLE_BYTE,
+};
 use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
     io::{Read, Result, Seek, Write},
     slice,
 };
-
-const RLE_BYTE: u8 = 0xC0;
-const CMD_BYTE: u8 = 0xE0;
-const DEFAULT_WAVE_BYTE: u8 = 0xF0;
-const DEFAULT_INSTRUMENT_BYTE: u8 = 0xF1;
-const EOF_BYTE: u8 = 0xFF;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum End {
@@ -75,33 +73,6 @@ where
     }
 
     Ok(CmdContinuation::Continue)
-}
-
-fn read_byte<R>(mut reader: R) -> Result<u8>
-where
-    R: Read,
-{
-    let mut byte = 0;
-    reader.read_exact(slice::from_mut(&mut byte))?;
-    Ok(byte)
-}
-
-fn write_repeated_byte<W>(value: u8, count: usize, writer: W) -> Result<()>
-where
-    W: Write,
-{
-    write_repeated_bytes(slice::from_ref(&value), count, writer)
-}
-
-fn write_repeated_bytes<W>(bytes: &[u8], count: usize, mut writer: W) -> Result<()>
-where
-    W: Write,
-{
-    for _ in 0..count {
-        writer.write_all(bytes)?
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
