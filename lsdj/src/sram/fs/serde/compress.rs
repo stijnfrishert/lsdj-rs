@@ -1,6 +1,9 @@
-use super::utils::{CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, DEFAULT_WAVE_BYTE};
+use super::utils::{read_byte, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, DEFAULT_WAVE_BYTE, RLE_BYTE};
 use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
-use std::io::{BufRead, Read, Result, Seek, SeekFrom, Write};
+use std::{
+    io::{BufRead, Read, Result, Seek, SeekFrom, Write},
+    slice,
+};
 use system_interface::io::Peek;
 
 pub fn compress_step<R, W>(mut reader: R, mut writer: W) -> Result<()>
@@ -8,22 +11,35 @@ where
     R: Read + Peek + BufRead + Seek,
     W: Write,
 {
-    if let count @ 1.. = count_matches(&mut reader, &DEFAULT_INSTRUMENT)? {
-        writer.write_all(&[CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, count])?;
+    if let count @ 1.. = count_matches(&mut reader, 0, &DEFAULT_INSTRUMENT)? {
+        return writer.write_all(&[CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, count]);
     }
 
-    if let count @ 1.. = count_matches(&mut reader, &DEFAULT_WAVE)? {
-        writer.write_all(&[CMD_BYTE, DEFAULT_WAVE_BYTE, count])?;
+    if let count @ 1.. = count_matches(&mut reader, 0, &DEFAULT_WAVE)? {
+        return writer.write_all(&[CMD_BYTE, DEFAULT_WAVE_BYTE, count]);
+    }
+
+    match read_byte(&mut reader)? {
+        CMD_BYTE => writer.write_all(&[CMD_BYTE, CMD_BYTE])?,
+        RLE_BYTE => writer.write_all(&[RLE_BYTE, RLE_BYTE])?,
+        value => {
+            let slice = slice::from_ref(&value);
+            if let count @ 2.. = count_matches(&mut reader, 1, slice)? {
+                writer.write_all(&[RLE_BYTE, value, count])?
+            } else {
+                writer.write_all(slice)?
+            }
+        }
     }
 
     Ok(())
 }
 
-fn count_matches<R>(mut reader: R, slice: &[u8]) -> Result<u8>
+fn count_matches<R>(mut reader: R, init: u8, slice: &[u8]) -> Result<u8>
 where
     R: Read + Peek + BufRead + Seek,
 {
-    let mut count = 0;
+    let mut count = init;
     while matches_slice(&mut reader, slice)? && count < u8::MAX {
         count += 1;
         reader.seek(SeekFrom::Current(slice.len() as i64))?;
@@ -43,6 +59,13 @@ where
     }
 }
 
+fn matches_byte<R>(reader: R, byte: u8) -> Result<bool>
+where
+    R: Read + Peek,
+{
+    matches_slice(reader, slice::from_ref(&byte))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,9 +77,41 @@ mod tests {
         assert!(!matches_slice(Cursor::new([0, 1]), &[0, 4]).unwrap());
 
         assert_eq!(
-            count_matches(Cursor::new([5, 5, 5, 5, 6]), &[5, 5]).unwrap(),
+            count_matches(Cursor::new([5, 5, 5, 5, 6]), 0, &[5, 5]).unwrap(),
             2
         );
+    }
+
+    #[test]
+    fn cmd_literal() {
+        let mut dest = [0; 2];
+        compress_step(Cursor::new([0xE0]), Cursor::new(dest.as_mut_slice())).unwrap();
+        assert_eq!(dest, [0xE0, 0xE0]);
+    }
+
+    #[test]
+    fn rle_literal() {
+        let mut dest = [0; 2];
+        compress_step(Cursor::new([0xC0]), Cursor::new(dest.as_mut_slice())).unwrap();
+        assert_eq!(dest, [0xC0, 0xC0]);
+    }
+
+    #[test]
+    fn rle() {
+        let mut dest = [0; 3];
+        compress_step(
+            Cursor::new([4, 4, 4, 4, 4, 4, 4]),
+            Cursor::new(dest.as_mut_slice()),
+        )
+        .unwrap();
+        assert_eq!(dest, [0xC0, 4, 7]);
+    }
+
+    #[test]
+    fn value() {
+        let mut dest = [0; 1];
+        compress_step(Cursor::new([4, 9]), Cursor::new(dest.as_mut_slice())).unwrap();
+        assert_eq!(dest, [4]);
     }
 
     #[test]
