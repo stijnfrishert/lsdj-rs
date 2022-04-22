@@ -68,7 +68,8 @@
       },
       "args": [
         "import",
-        "-o /Users/stijn/Desktop/test.sav",
+        "-o",
+        "/Users/stijn/Desktop/test.sav",
         "/Users/stijn/Google Drive/lsdj/4ntler/Super koto.lsdsng"
       ],
       "cwd": "${workspaceFolder}"

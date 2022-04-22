@@ -9,7 +9,7 @@ use fs::{Filesystem, FilesystemReadError};
 use name::{Name, NameFromBytesError};
 use song::{SongMemory, SongMemoryReadError};
 use std::{
-    fs::File,
+    fs::{create_dir_all, File},
     io::{self, Read, Write},
     path::Path,
 };
@@ -72,6 +72,8 @@ impl SRam {
     where
         P: AsRef<Path>,
     {
+        let path = path.as_ref();
+        create_dir_all(path.parent().unwrap())?;
         self.to_writer(File::create(path)?)
     }
 }

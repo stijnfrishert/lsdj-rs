@@ -1,8 +1,8 @@
 use crate::utils::{has_extension, is_hidden};
-use anyhow::{Context, Result};
+use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
-    sram::{lsdsng::LsdSng, SRam},
+    sram::{fs::Filesystem, lsdsng::LsdSng, SRam},
     u5,
 };
 use std::path::PathBuf;
@@ -19,34 +19,38 @@ pub struct ImportArgs {
     output: PathBuf,
 }
 
-// struct Song {
-//     name: Name<8>,
-//     version: u8,
-//     song: SongMemory,
-// }
-
 pub fn import(args: ImportArgs) -> Result<()> {
-    let mut songs = Vec::new();
+    let mut index = 0u8;
+    let mut sram = SRam::new();
 
     for path in args.song {
         if !is_hidden(&path) && has_extension(&path, "lsdsng") {
-            songs.push(LsdSng::from_file(&path).context("Could not load {path}")?);
+            if index == Filesystem::FILES_CAPACITY as u8 {
+                return Err(Error::msg(
+                    "Reached the maximum file limit. Aborting import.",
+                ));
+            }
+
+            let lsdsng = LsdSng::from_file(&path).context("Could not load {path}")?;
+            let song = lsdsng
+                .decompress()
+                .context(format!("Could not decompress {}", path.to_string_lossy()))?;
+
+            sram.filesystem
+                .insert_file(u5::new(index), &lsdsng.name, lsdsng.version, &song)
+                .context("Could not insert song")?;
+
+            println!("Imported file {}: {}", index, path.to_string_lossy());
+
+            index += 1;
         }
     }
 
-    let mut sram = SRam::new();
+    sram.to_file(&args.output).context(format!(
+        "Could not write SRAM to {}",
+        args.output.to_string_lossy()
+    ))?;
 
-    sram.filesystem
-        .insert_file(
-            u5::new(0),
-            &songs[0].name,
-            songs[0].version,
-            &songs[0].decompress().context("Could not decompress song")?,
-        )
-        .context("Could not insert song")?;
-
-    sram.to_file(&args.output)
-        .context("Could not write SRAM to file")?;
     println!("Wrote {}", args.output.to_string_lossy());
 
     Ok(())
