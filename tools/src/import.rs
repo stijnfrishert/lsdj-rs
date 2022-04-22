@@ -1,4 +1,4 @@
-use crate::utils::{has_extension, is_hidden};
+use crate::utils::has_extension;
 use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
@@ -24,13 +24,13 @@ pub fn import(args: ImportArgs) -> Result<()> {
     let mut sram = SRam::new();
 
     for path in args.song {
-        if !is_hidden(&path) && has_extension(&path, "lsdsng") {
-            if index == Filesystem::FILES_CAPACITY as u8 {
-                return Err(Error::msg(
-                    "Reached the maximum file limit. Aborting import.",
-                ));
-            }
+        if index == Filesystem::FILES_CAPACITY as u8 {
+            return Err(Error::msg(
+                "Reached the maximum file limit. Aborting import.",
+            ));
+        }
 
+        if has_extension(&path, "lsdsng") {
             let lsdsng = LsdSng::from_file(&path).context("Could not load {path}")?;
             let song = lsdsng
                 .decompress()
@@ -40,9 +40,37 @@ pub fn import(args: ImportArgs) -> Result<()> {
                 .insert_file(u5::new(index), &lsdsng.name, lsdsng.version, &song)
                 .context("Could not insert song")?;
 
-            println!("Imported file {}: {}", index, path.to_string_lossy());
+            println!("Imported to {:02}: {}", index, path.to_string_lossy());
 
             index += 1;
+        } else if has_extension(&path, "sav") {
+            let sav = SRam::from_file(&path)
+                .context(format!("Could not open {}", path.to_string_lossy()))?;
+
+            for (source_index, file) in sav.filesystem.files().enumerate() {
+                if let Some(file) = file {
+                    let song = file.decompress().context(format!(
+                        "Could not decompress file {} from {}",
+                        source_index,
+                        path.to_string_lossy()
+                    ))?;
+
+                    let name = file.name()?;
+
+                    sram.filesystem
+                        .insert_file(u5::new(index), &name, file.version(), &song)
+                        .context("Could not insert song")?;
+
+                    println!(
+                        "Imported to {:02}: {} - {}",
+                        index,
+                        path.to_string_lossy(),
+                        name.as_str(),
+                    );
+
+                    index += 1;
+                }
+            }
         }
     }
 

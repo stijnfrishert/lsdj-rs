@@ -70,6 +70,7 @@
         "import",
         "-o",
         "/Users/stijn/Desktop/test.sav",
+        "/Users/stijn/Google Drive/lsdj/4ntler/Voltage and Walking.sav",
         "/Users/stijn/Google Drive/lsdj/4ntler/Super koto.lsdsng"
       ],
       "cwd": "${workspaceFolder}"
