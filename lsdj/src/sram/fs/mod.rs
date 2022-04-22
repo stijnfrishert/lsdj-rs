@@ -109,15 +109,29 @@ impl Filesystem {
         name: &Name<8>,
         version: u8,
         song: &SongMemory,
-    ) -> Result<(), CompressBlockError> {
-        // First, find out if we need to remove an old song from the filesystem
-
-        // Second, compress the song into temporary blocks to figure out how many we need
+    ) -> Result<Option<LsdSng>, CompressBlockError> {
+        // First, compress the song into temporary blocks to figure out how many we need
         let blocks = {
+            // Figure out which blocks we *can* use
+            let mut free_blocks = self
+                .alloc_table()
+                .iter()
+                .enumerate()
+                .filter_map(|(index, f)| {
+                    if *f == UNUSED_BLOCK || *f == file.into() {
+                        Some(index as u8 + 1)
+                    } else {
+                        None
+                    }
+                })
+                .peekable();
+
+            // Create a reader over the song memory and a hashmap to store the blocks
             let mut reader = Cursor::new(song.as_slice());
-            let mut free_blocks = self.free_blocks().peekable();
             let mut blocks = HashMap::new();
 
+            // Loop until we've reached end-of-file
+            // If we run out of space, compress_block() will return an error and this will propagate upward
             loop {
                 let mut block = [0; Self::BLOCK_LEN];
                 let index = free_blocks.next().ok_or(CompressBlockError::NoBlockLeft)?;
@@ -135,6 +149,9 @@ impl Filesystem {
             blocks
         };
 
+        // Second, remove the old file if necessary
+        let old = self.remove_file(file);
+
         // Third, do the actual import
         self.file_name_mut(file).copy_from_slice(name.bytes());
         *self.file_version_mut(file) = version;
@@ -144,21 +161,7 @@ impl Filesystem {
             self.block_mut(index).copy_from_slice(&block);
         }
 
-        Ok(())
-    }
-
-    /// Iterate over the indices of all the free blocks
-    fn free_blocks(&self) -> impl Iterator<Item = u8> + '_ {
-        self.alloc_table()
-            .iter()
-            .enumerate()
-            .filter_map(|(index, file)| {
-                if *file == UNUSED_BLOCK {
-                    Some(index as u8 + 1)
-                } else {
-                    None
-                }
-            })
+        Ok(old)
     }
 
     /// Remove a file from the filesystem
@@ -385,7 +388,6 @@ pub enum FileToLsdSngError {
 mod tests {
     use super::*;
     use crate::u5;
-    use std::str::FromStr;
 
     #[test]
     fn empty_92l() {
@@ -403,7 +405,7 @@ mod tests {
 
         assert!(filesystem.is_file_in_use(u5::new(0)));
         let file = filesystem.file(u5::new(0)).unwrap();
-        assert_eq!(file.name(), Ok(Name::<8>::from_str("EMPTY").unwrap()));
+        assert_eq!(file.name(), Ok("EMPTY".try_into().unwrap()));
         assert_eq!(file.version(), 0);
 
         let song = file.decompress().unwrap();
@@ -420,13 +422,17 @@ mod tests {
     fn insert() {
         let mut filesystem = Filesystem::new();
 
-        filesystem
-            .insert_file(
-                u5::new(0),
-                &"EMPTY".try_into().unwrap(),
-                0,
-                &SongMemory::from_bytes(include_bytes!("../../../../test/92L_empty.raw")).unwrap(),
-            )
-            .unwrap();
+        let name = "EMPTY".try_into().unwrap();
+        let song =
+            SongMemory::from_bytes(include_bytes!("../../../../test/92L_empty.raw")).unwrap();
+
+        let old = filesystem.insert_file(u5::new(0), &name, 0, &song).unwrap();
+
+        assert!(filesystem.is_file_in_use(u5::new(0)));
+        assert!(old.is_none());
+
+        let old = filesystem.insert_file(u5::new(0), &name, 0, &song).unwrap();
+        assert!(filesystem.is_file_in_use(u5::new(0)));
+        assert!(old.is_some());
     }
 }
