@@ -1,7 +1,10 @@
 use crate::utils::{has_extension, is_hidden};
 use anyhow::{Context, Result};
 use clap::Args;
-use lsdj::sram::{lsdsng::LsdSng, SRam};
+use lsdj::{
+    sram::{lsdsng::LsdSng, SRam},
+    u5,
+};
 use std::path::PathBuf;
 
 /// Import songs into an LSDJ save file
@@ -16,6 +19,12 @@ pub struct ImportArgs {
     output: PathBuf,
 }
 
+// struct Song {
+//     name: Name<8>,
+//     version: u8,
+//     song: SongMemory,
+// }
+
 pub fn import(args: ImportArgs) -> Result<()> {
     let mut songs = Vec::new();
 
@@ -25,7 +34,16 @@ pub fn import(args: ImportArgs) -> Result<()> {
         }
     }
 
-    let sram = SRam::new();
+    let mut sram = SRam::new();
+
+    sram.filesystem
+        .insert_file(
+            u5::new(0),
+            &songs[0].name,
+            songs[0].version,
+            &songs[0].decompress().context("Could not decompress song")?,
+        )
+        .context("Could not insert song")?;
 
     sram.to_file(&args.output)
         .context("Could not write SRAM to file")?;

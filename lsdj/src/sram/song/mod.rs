@@ -18,7 +18,22 @@ impl SongMemory {
     /// Construct a new, empty song, ready for use
     pub fn new() -> Self {
         Self {
-            bytes: *include_bytes!("empty.raw"),
+            bytes: *include_bytes!("../../../../test/92L_empty.raw"),
+        }
+    }
+
+    /// Try and construct a song from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SongMemoryFromBytesError> {
+        let bytes: [u8; Self::LEN] = bytes
+            .try_into()
+            .map_err(|_| SongMemoryFromBytesError::IncorrectSize)?;
+
+        let check = |offset| bytes[offset] == 0x72 && bytes[offset + 1] == 0x62;
+
+        if check(0x1E78) || check(0x3E80) || check(0x7FF0) {
+            Ok(Self { bytes })
+        } else {
+            Err(SongMemoryFromBytesError::InitializationCheckIncorrect)
         }
     }
 
@@ -62,6 +77,18 @@ impl Default for SongMemory {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// An error describing what could go wrong constructing a [`SongMemory`] from a byte slice
+#[derive(Debug, Error)]
+pub enum SongMemoryFromBytesError {
+    #[error("The slice isn't of the correct size")]
+    IncorrectSize,
+
+    /// All correctly initialized song memory has certain magic bytes set.
+    /// This error is returned when that isn't the case during a read.
+    #[error("The initialization check failed")]
+    InitializationCheckIncorrect,
 }
 
 /// An error describing what could go wrong reading a [`SongMemory`] from I/O

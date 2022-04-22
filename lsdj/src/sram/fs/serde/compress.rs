@@ -1,58 +1,74 @@
-use super::utils::{read_byte, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, DEFAULT_WAVE_BYTE, RLE_BYTE};
+use super::{
+    utils::{read_byte, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, DEFAULT_WAVE_BYTE, RLE_BYTE},
+    End,
+};
 use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
-    io::{BufRead, Cursor, Read, Result, Seek, SeekFrom, Write},
+    io::{self, BufRead, Read, Seek, SeekFrom, Write},
     slice,
 };
 use system_interface::io::Peek;
+use thiserror::Error;
 
-pub fn compress<'a, R, I>(mut reader: R, mut blocks: I) -> Result<()>
+pub fn compress_block<R, W, F>(
+    mut reader: R,
+    mut writer: W,
+    next_block: F,
+) -> Result<End, CompressBlockError>
 where
-    R: Read + Peek + BufRead + Seek,
-    I: Iterator<Item = (u8, &'a mut [u8])>,
+    R: Read + BufRead + Seek,
+    W: Write + Seek,
+    F: FnOnce() -> Option<u8>,
 {
-    let read_end = {
-        let pos = reader.stream_position()?;
-        reader.seek(SeekFrom::End(0))?;
-        let end = reader.stream_position()?;
-        reader.seek(SeekFrom::Start(pos))?;
-        end
-    };
-
-    let (_, bytes) = blocks.next().unwrap();
-    let mut end = bytes.len();
-    let mut writer = Cursor::new(bytes);
+    let read_end = end(&mut reader)?;
+    let write_end = end(&mut writer)?;
 
     loop {
-        if reader.stream_position().unwrap() == read_end {
+        let write_pos = writer.stream_position()?;
+        let left = write_end - write_pos;
+
+        // Check if we've reached the end-of-file
+        if reader.stream_position()? == read_end {
             writer.write_all(&[0xE0, 0xFF])?;
-            break;
+            writer.write_all(&vec![0; (left - 2) as usize])?;
+            return Ok(End::EndOfFile);
         }
 
-        let mut write_pos = writer.stream_position()?;
-
-        let compression = compress_step(&mut reader)?;
-
-        // If there's not space left, jump to a new block where we can
-        while write_pos as usize + compression.len() > end - 2 {
-            // Retrieve data for the next buffer
-            let (next_block, bytes) = blocks.next().unwrap();
-
-            // Write the block jump
-            writer.write_all(&[0xE0, next_block])?;
-
-            write_pos = 0;
-            end = bytes.len();
-            writer = Cursor::new(bytes);
+        if left >= 5 {
+            let compression = compress_step(&mut reader)?;
+            compression.write(&mut writer)?;
+        } else {
+            let index = next_block().ok_or(CompressBlockError::NoBlockLeft)?;
+            writer.write_all(&[0xE0, index])?;
+            writer.write_all(&vec![0; (left - 2) as usize])?;
+            return Ok(End::JumpToBlock(index));
         }
-
-        compression.write(&mut writer)?;
     }
-
-    Ok(())
 }
 
-fn compress_step<R>(mut reader: R) -> Result<Compression>
+#[derive(Debug, Error)]
+pub enum CompressBlockError {
+    // Something went wrong with reading or writing from I/O
+    #[error("Reading/writing from I/O failed")]
+    Io(#[from] io::Error),
+
+    // There are no more empty blocks left in the filesystem
+    #[error("The filesystem ran out of blocks")]
+    NoBlockLeft,
+}
+
+fn end<S>(mut seeker: S) -> io::Result<u64>
+where
+    S: Seek,
+{
+    let pos = seeker.stream_position()?;
+    seeker.seek(SeekFrom::End(0))?;
+    let end = seeker.stream_position()?;
+    seeker.seek(SeekFrom::Start(pos))?;
+    Ok(end)
+}
+
+fn compress_step<R>(mut reader: R) -> io::Result<Compression>
 where
     R: Read + Peek + BufRead + Seek,
 {
@@ -88,18 +104,7 @@ enum Compression {
 }
 
 impl Compression {
-    pub fn len(&self) -> usize {
-        match self {
-            Self::RunLengthEncoding { .. } => 3,
-            Self::DefaultInstrument { .. } => 3,
-            Self::DefaultWave { .. } => 3,
-            Self::RleLiteral => 2,
-            Self::CmdLiteral => 2,
-            Self::Literal { .. } => 1,
-        }
-    }
-
-    pub fn write<W>(self, mut writer: W) -> Result<()>
+    pub fn write<W>(self, mut writer: W) -> io::Result<()>
     where
         W: Write,
     {
@@ -116,7 +121,7 @@ impl Compression {
     }
 }
 
-fn count_matches<R>(mut reader: R, init: u8, slice: &[u8]) -> Result<u8>
+fn count_matches<R>(mut reader: R, init: u8, slice: &[u8]) -> io::Result<u8>
 where
     R: Read + Peek + BufRead + Seek,
 {
@@ -128,7 +133,7 @@ where
     Ok(count)
 }
 
-fn matches_slice<R>(mut reader: R, slice: &[u8]) -> Result<bool>
+fn matches_slice<R>(mut reader: R, slice: &[u8]) -> io::Result<bool>
 where
     R: Read + Peek,
 {
@@ -220,12 +225,14 @@ mod tests {
 
     #[test]
     fn block() {
-        let reader = Cursor::new([4, 4, 4, 9]);
+        let mut reader = Cursor::new([4, 4, 4, 9]);
 
         let mut dest = [0; 10];
+        let end = compress_block(&mut reader, Cursor::new(&mut dest[..5]), || Some(1));
+        assert_eq!(end.unwrap(), End::JumpToBlock(1));
 
-        let iter = (0..).zip(dest.chunks_mut(5));
-        compress(reader, iter).unwrap();
+        let end = compress_block(reader, Cursor::new(&mut dest[5..]), || None);
+        assert_eq!(end.unwrap(), End::EndOfFile);
 
         assert_eq!(dest, [0xC0, 4, 3, 0xE0, 1, 9, 0xE0, 0xFF, 0x0, 0x0]);
     }

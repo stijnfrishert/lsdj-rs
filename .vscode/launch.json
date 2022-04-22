@@ -54,6 +54,24 @@
         "/Users/stijn/Development/lsdj-rs/test/92L_empty.sav"
       ],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug LSDJ Tools – Import",
+      "cargo": {
+        "args": ["build", "--bin=lsdj-tools", "--package=lsdj-tools"],
+        "filter": {
+          "name": "lsdj-tools",
+          "kind": "bin"
+        }
+      },
+      "args": [
+        "import",
+        "-o /Users/stijn/Desktop/test.sav",
+        "/Users/stijn/Google Drive/lsdj/4ntler/Super koto.lsdsng"
+      ],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

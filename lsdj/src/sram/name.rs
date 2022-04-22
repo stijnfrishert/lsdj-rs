@@ -1,5 +1,8 @@
 //! A null-terminated/max-length string based on a subset of ASCII
-use std::{fmt, str};
+use std::{
+    fmt,
+    str::{self, FromStr},
+};
 use thiserror::Error;
 
 /// A null-terminated/max-length string based on a subset of ASCII
@@ -78,6 +81,33 @@ impl<const N: usize> fmt::Display for Name<N> {
     }
 }
 
+impl<'a, const N: usize> TryFrom<&'a [u8]> for Name<N> {
+    type Error = NameFromBytesError;
+
+    #[inline]
+    fn try_from(bytes: &'a [u8]) -> Result<Self, Self::Error> {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl<'a, const N: usize> TryFrom<&'a str> for Name<N> {
+    type Error = NameFromBytesError;
+
+    #[inline]
+    fn try_from(str: &'a str) -> Result<Self, Self::Error> {
+        str.as_bytes().try_into()
+    }
+}
+
+impl<const N: usize> FromStr for Name<N> {
+    type Err = NameFromBytesError;
+
+    #[inline]
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        str.try_into()
+    }
+}
+
 /// An error describing what could go wrong converting a byte slice to a [`Name`]
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum NameFromBytesError {
@@ -98,19 +128,19 @@ mod tests {
     fn from_bytes() {
         const HELLO: &str = "HELLO";
 
-        let name = Name::<8>::from_bytes(HELLO.as_bytes()).expect("bytes rejected");
+        let name = Name::<8>::from_str(HELLO).expect("bytes rejected");
         assert_eq!(name.len(), 5);
         assert!(!name.is_empty());
         assert_eq!(name.as_str(), HELLO);
         assert_eq!(format!("{name}"), HELLO);
 
         assert_eq!(
-            Name::<8>::from_bytes("123456789".as_bytes()),
+            Name::<8>::from_str("123456789"),
             Err(NameFromBytesError::TooLong)
         );
 
         assert_eq!(
-            Name::<8>::from_bytes("A!".as_bytes()),
+            Name::<8>::from_str("A!"),
             Err(NameFromBytesError::DisallowedByte {
                 byte: 33, // '!'
                 index: 1

@@ -8,8 +8,9 @@ use crate::sram::{
     Name, NameFromBytesError,
 };
 use serde::{
-    compress::compress,
-    decompress::{decompress_block, End},
+    compress::{compress_block, CompressBlockError},
+    decompress::decompress_block,
+    End,
 };
 use std::{
     collections::HashMap,
@@ -104,29 +105,60 @@ impl Filesystem {
     /// Insert a new file into the filesystem
     pub fn insert_file(
         &mut self,
-        _index: u5,
-        _name: &Name<8>,
-        _version: u8,
+        file: u5,
+        name: &Name<8>,
+        version: u8,
         song: &SongMemory,
-    ) -> Result<(), io::Error> {
-        let alloc_table = self.alloc_table().to_vec();
-        let free_blocks = (0u8..)
-            .zip(self.bytes[Self::BLOCK_LEN..].chunks_exact_mut(Self::BLOCK_LEN))
-            .filter(move |(index, _)| alloc_table[*index as usize] == UNUSED_BLOCK);
+    ) -> Result<(), CompressBlockError> {
+        // First, find out if we need to remove an old song from the filesystem
 
-        // let blocks = self.alloc_table().to_vec();
+        // Second, compress the song into temporary blocks to figure out how many we need
+        let blocks = {
+            let mut reader = Cursor::new(song.as_slice());
+            let mut free_blocks = self.free_blocks().peekable();
+            let mut blocks = HashMap::new();
 
-        // let iter = blocks.iter().filter_map(|block| {
-        //     if *block == UNUSED_BLOCK {
-        //         Some((*block, self.block_mut(*block)))
-        //     } else {
-        //         None
-        //     }
-        // });
+            loop {
+                let mut block = [0; Self::BLOCK_LEN];
+                let index = free_blocks.next().ok_or(CompressBlockError::NoBlockLeft)?;
+                let end = compress_block(&mut reader, Cursor::new(block.as_mut_slice()), || {
+                    free_blocks.peek().copied()
+                })?;
 
-        compress(Cursor::new(song.as_slice()), free_blocks)?;
+                blocks.insert(index, block);
+
+                if end == End::EndOfFile {
+                    break;
+                }
+            }
+
+            blocks
+        };
+
+        // Third, do the actual import
+        self.file_name_mut(file).copy_from_slice(name.bytes());
+        *self.file_version_mut(file) = version;
+
+        for (index, block) in blocks {
+            self.alloc_table_mut()[index as usize - 1] = file.into();
+            self.block_mut(index).copy_from_slice(&block);
+        }
 
         Ok(())
+    }
+
+    /// Iterate over the indices of all the free blocks
+    fn free_blocks(&self) -> impl Iterator<Item = u8> + '_ {
+        self.alloc_table()
+            .iter()
+            .enumerate()
+            .filter_map(|(index, file)| {
+                if *file == UNUSED_BLOCK {
+                    Some(index as u8 + 1)
+                } else {
+                    None
+                }
+            })
     }
 
     /// Remove a file from the filesystem
@@ -353,6 +385,7 @@ pub enum FileToLsdSngError {
 mod tests {
     use super::*;
     use crate::u5;
+    use std::str::FromStr;
 
     #[test]
     fn empty_92l() {
@@ -370,10 +403,7 @@ mod tests {
 
         assert!(filesystem.is_file_in_use(u5::new(0)));
         let file = filesystem.file(u5::new(0)).unwrap();
-        assert_eq!(
-            file.name(),
-            Ok(Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap())
-        );
+        assert_eq!(file.name(), Ok(Name::<8>::from_str("EMPTY").unwrap()));
         assert_eq!(file.version(), 0);
 
         let song = file.decompress().unwrap();
@@ -384,5 +414,19 @@ mod tests {
 
         filesystem.remove_file(u5::new(0));
         assert!(!filesystem.is_file_in_use(u5::new(0)));
+    }
+
+    #[test]
+    fn insert() {
+        let mut filesystem = Filesystem::new();
+
+        filesystem
+            .insert_file(
+                u5::new(0),
+                &"EMPTY".try_into().unwrap(),
+                0,
+                &SongMemory::from_bytes(include_bytes!("../../../../test/92L_empty.raw")).unwrap(),
+            )
+            .unwrap();
     }
 }

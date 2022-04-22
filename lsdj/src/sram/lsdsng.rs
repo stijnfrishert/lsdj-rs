@@ -2,7 +2,7 @@
 
 use crate::sram::{
     fs::{
-        serde::decompress::{decompress_block, End},
+        serde::{decompress::decompress_block, End},
         Filesystem,
     },
     name::{Name, NameFromBytesError},
@@ -121,18 +121,14 @@ pub enum LsdsngFromReaderError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{io::Cursor, str::FromStr};
 
     #[test]
     fn empty() {
-        use std::io::Cursor;
-
         let source = include_bytes!("../../../test/92L_empty.lsdsng");
         let lsdsng = LsdSng::from_reader(Cursor::new(source)).unwrap();
 
-        assert_eq!(
-            lsdsng.name,
-            Name::<8>::from_bytes("EMPTY".as_bytes()).unwrap()
-        );
+        assert_eq!(lsdsng.name, Name::<8>::from_str("EMPTY").unwrap());
 
         assert_eq!(lsdsng.version, 0);
 

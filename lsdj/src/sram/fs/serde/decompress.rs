@@ -1,18 +1,15 @@
-use super::utils::{
-    read_byte, write_repeated_byte, write_repeated_bytes, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE,
-    DEFAULT_WAVE_BYTE, EOF_BYTE, RLE_BYTE,
+use super::{
+    utils::{
+        read_byte, write_repeated_byte, write_repeated_bytes, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE,
+        DEFAULT_WAVE_BYTE, EOF_BYTE, RLE_BYTE,
+    },
+    End,
 };
 use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
     io::{Read, Result, Seek, Write},
     slice,
 };
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum End {
-    JumpToBlock(u8),
-    EndOfFile,
-}
 
 #[derive(Debug, PartialEq, Eq)]
 enum CmdContinuation {
