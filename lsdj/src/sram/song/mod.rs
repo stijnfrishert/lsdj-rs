@@ -51,6 +51,11 @@ impl SongMemory {
     pub fn format_version(&self) -> u8 {
         self.bytes[0x7FFF]
     }
+
+    /// Access the bytes that make up the song
+    pub fn as_slice(&self) -> &[u8] {
+        &self.bytes
+    }
 }
 
 impl Default for SongMemory {

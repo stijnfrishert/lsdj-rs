@@ -1,22 +1,15 @@
 use super::utils::{read_byte, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, DEFAULT_WAVE_BYTE, RLE_BYTE};
 use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
-    io::{BufRead, Read, Result, Seek, SeekFrom, Write},
-    ops::Range,
+    io::{BufRead, Cursor, Read, Result, Seek, SeekFrom, Write},
     slice,
 };
 use system_interface::io::Peek;
 
-pub fn compress<R, W, F>(
-    mut reader: R,
-    mut writer: W,
-    block: Range<u64>,
-    next_block: F,
-) -> Result<()>
+pub fn compress<'a, R, I>(mut reader: R, mut blocks: I) -> Result<()>
 where
     R: Read + Peek + BufRead + Seek,
-    W: Write + Seek,
-    F: Fn() -> (u8, Range<u64>),
+    I: Iterator<Item = (u8, &'a mut [u8])>,
 {
     let read_end = {
         let pos = reader.stream_position()?;
@@ -26,8 +19,9 @@ where
         end
     };
 
-    writer.seek(SeekFrom::Start(block.start))?;
-    let mut write_end = block.end;
+    let (_, bytes) = blocks.next().unwrap();
+    let mut end = bytes.len();
+    let mut writer = Cursor::new(bytes);
 
     loop {
         if reader.stream_position().unwrap() == read_end {
@@ -35,17 +29,21 @@ where
             break;
         }
 
-        let write_pos = writer.stream_position()?;
+        let mut write_pos = writer.stream_position()?;
 
         let compression = compress_step(&mut reader)?;
 
         // If there's not space left, jump to a new block where we can
-        while write_pos + compression.len() as u64 > write_end - 2 {
+        while write_pos as usize + compression.len() > end - 2 {
+            // Retrieve data for the next buffer
+            let (next_block, bytes) = blocks.next().unwrap();
+
             // Write the block jump
-            let (block, range) = next_block();
-            writer.write_all(&[0xE0, block])?;
-            writer.seek(SeekFrom::Start(range.start))?;
-            write_end = range.end;
+            writer.write_all(&[0xE0, next_block])?;
+
+            write_pos = 0;
+            end = bytes.len();
+            writer = Cursor::new(bytes);
         }
 
         compression.write(&mut writer)?;
@@ -222,14 +220,13 @@ mod tests {
 
     #[test]
     fn block() {
-        let mut dest = [0; 8];
-        compress(
-            Cursor::new([4, 4, 4, 9]),
-            Cursor::new(dest.as_mut_slice()),
-            0..5,
-            || (1, (5..8)),
-        )
-        .unwrap();
-        assert_eq!(dest, [0xC0, 4, 3, 0xE0, 1, 9, 0xE0, 0xFF]);
+        let reader = Cursor::new([4, 4, 4, 9]);
+
+        let mut dest = [0; 10];
+
+        let iter = (0..).zip(dest.chunks_mut(5));
+        compress(reader, iter).unwrap();
+
+        assert_eq!(dest, [0xC0, 4, 3, 0xE0, 1, 9, 0xE0, 0xFF, 0x0, 0x0]);
     }
 }

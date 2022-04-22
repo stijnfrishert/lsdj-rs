@@ -7,7 +7,10 @@ use crate::sram::{
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
 };
-use serde::decompress::{decompress_block, End};
+use serde::{
+    compress::compress,
+    decompress::{decompress_block, End},
+};
 use std::{
     collections::HashMap,
     io::{self, Cursor, Read, Seek, SeekFrom, Write},
@@ -99,8 +102,31 @@ impl Filesystem {
     }
 
     /// Insert a new file into the filesystem
-    pub fn insert_file(&mut self, index: u5, name: &Name<8>, version: u8, song: &SongMemory) {
-        // let mut new_blocks = HashMap::new();
+    pub fn insert_file(
+        &mut self,
+        _index: u5,
+        _name: &Name<8>,
+        _version: u8,
+        song: &SongMemory,
+    ) -> Result<(), io::Error> {
+        let alloc_table = self.alloc_table().to_vec();
+        let free_blocks = (0u8..)
+            .zip(self.bytes[Self::BLOCK_LEN..].chunks_exact_mut(Self::BLOCK_LEN))
+            .filter(move |(index, _)| alloc_table[*index as usize] == UNUSED_BLOCK);
+
+        // let blocks = self.alloc_table().to_vec();
+
+        // let iter = blocks.iter().filter_map(|block| {
+        //     if *block == UNUSED_BLOCK {
+        //         Some((*block, self.block_mut(*block)))
+        //     } else {
+        //         None
+        //     }
+        // });
+
+        compress(Cursor::new(song.as_slice()), free_blocks)?;
+
+        Ok(())
     }
 
     /// Remove a file from the filesystem
