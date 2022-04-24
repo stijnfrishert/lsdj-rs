@@ -1,10 +1,12 @@
-use crate::utils::{has_extension, is_hidden};
+use crate::utils::iter_files;
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{fs::Filesystem, SRam};
 use pathdiff::diff_paths;
-use std::path::{Path, PathBuf};
-use walkdir::{DirEntry, WalkDir};
+use std::{
+    iter::once,
+    path::{Path, PathBuf},
+};
 
 /// Inspect LSDJ save files for their contents
 #[derive(Args)]
@@ -19,15 +21,8 @@ pub struct InspectArgs {
 }
 
 pub fn inspect(args: &InspectArgs) -> Result<()> {
-    let mut walk_dir = WalkDir::new(&args.path);
-    if !args.recursive {
-        walk_dir = walk_dir.max_depth(1);
-    }
-
-    let paths: Vec<_> = walk_dir
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter_map(get_path_if_valid)
+    let paths: Vec<_> = iter_files(once(&args.path), args.recursive, &["sav"])
+        .map(|entry| entry.path().to_owned())
         .collect();
 
     if let Some((last, rest)) = paths.split_last() {
@@ -78,13 +73,4 @@ fn print_mem(sram: &SRam) {
         "=".repeat(bar),
         " ".repeat(BAR_LEN - bar)
     );
-}
-
-fn get_path_if_valid(entry: DirEntry) -> Option<PathBuf> {
-    let path = entry.path();
-    if !is_hidden(path) && has_extension(path, "sav") {
-        return Some(path.to_owned());
-    }
-
-    None
 }

@@ -31,6 +31,7 @@
       },
       "args": [
         "inspect",
+        "-r",
         // "/Users/stijn/Development/lsdj-rs/test"
         "/Users/stijn/Google Drive/lsdj/4ntler"
       ],
@@ -70,8 +71,8 @@
         "import",
         "-o",
         "/Users/stijn/Desktop/test.sav",
-        "/Users/stijn/Google Drive/lsdj/4ntler/Voltage and Walking.sav",
-        "/Users/stijn/Google Drive/lsdj/4ntler/Super koto.lsdsng"
+        "/Users/stijn/Google Drive/lsdj/Tobokegao",
+        "/Users/stijn/Google Drive/lsdj/4ntler"
       ],
       "cwd": "${workspaceFolder}"
     }

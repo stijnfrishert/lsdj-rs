@@ -1,4 +1,4 @@
-use crate::utils::has_extension;
+use crate::utils::{has_extension, iter_files};
 use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
@@ -23,14 +23,16 @@ pub fn import(args: ImportArgs) -> Result<()> {
     let mut index = 0u8;
     let mut sram = SRam::new();
 
-    for path in args.song {
+    for entry in iter_files(&args.song, true, &["lsdsng", "sav"]) {
+        let path = entry.path();
+
         if index == Filesystem::FILES_CAPACITY as u8 {
             return Err(Error::msg(
                 "Reached the maximum file limit. Aborting import.",
             ));
         }
 
-        if has_extension(&path, "lsdsng") {
+        if has_extension(path, "lsdsng") {
             let lsdsng = LsdSng::from_file(&path).context("Could not load {path}")?;
             let song = lsdsng
                 .decompress()
@@ -43,7 +45,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
             println!("Imported to {:02}: {}", index, path.to_string_lossy());
 
             index += 1;
-        } else if has_extension(&path, "sav") {
+        } else if has_extension(path, "sav") {
             let sav = SRam::from_file(&path)
                 .context(format!("Could not open {}", path.to_string_lossy()))?;
 
