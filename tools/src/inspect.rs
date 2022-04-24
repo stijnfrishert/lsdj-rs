@@ -1,7 +1,10 @@
 use crate::utils::iter_files;
 use anyhow::{Context, Result};
 use clap::Args;
-use lsdj::sram::{fs::Filesystem, SRam};
+use lsdj::sram::{
+    fs::{File, Filesystem},
+    SRam,
+};
 use pathdiff::diff_paths;
 use std::{
     iter::once,

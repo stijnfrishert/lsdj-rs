@@ -1,5 +1,6 @@
-//! The filesystem that LSDJ uses to store compressed songs in the [`SRam`](crate::sram::SRam)
+//! The filesystem that LSDJ uses to store compressed songs in the [`SRam`](crate::sram)
 
+mod file;
 pub mod serde;
 
 use crate::sram::{
@@ -7,6 +8,7 @@ use crate::sram::{
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
 };
+pub use file::{File, FileToLsdSngError};
 use serde::{
     compress::{compress_block, CompressBlockError},
     decompress::decompress_block,
@@ -89,17 +91,17 @@ impl Filesystem {
     }
 
     /// Retrieve a file from the filesystem
-    pub fn file(&self, index: u5) -> Option<File> {
+    pub fn file(&self, index: u5) -> Option<Entry> {
         if self.is_file_in_use(index) {
-            Some(File { fs: self, index })
+            Some(Entry { fs: self, index })
         } else {
             None
         }
     }
 
     /// Iterate over the files in the filesystem
-    pub fn files(&self) -> Files {
-        Files { fs: self, index: 0 }
+    pub fn files(&self) -> Entries {
+        Entries { fs: self, index: 0 }
     }
 
     /// Insert a new file into the filesystem
@@ -191,7 +193,7 @@ impl Filesystem {
         }
     }
 
-    /// The index of the file the [`SRam`](crate::sram::SRam)'s working memory song is supposed to refer to
+    /// The index of the file the [`SRam`](crate::sram)'s working memory song is supposed to refer to
     pub fn active_file(&self) -> Option<u5> {
         match self.bytes[ACTIVE_FILE_INDEX] {
             NO_ACTIVE_FILE => None,
@@ -304,14 +306,14 @@ impl Default for Filesystem {
     }
 }
 
-/// Iterator over all the [`File`]'s in a [`Filesystem`]
-pub struct Files<'a> {
+/// Iterator over all the file [`Entry`]'s in a [`Filesystem`]
+pub struct Entries<'a> {
     fs: &'a Filesystem,
     index: u8,
 }
 
-impl<'a> Iterator for Files<'a> {
-    type Item = Option<File<'a>>;
+impl<'a> Iterator for Entries<'a> {
+    type Item = Option<Entry<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if (self.index as usize) < Filesystem::FILES_CAPACITY {
@@ -325,22 +327,22 @@ impl<'a> Iterator for Files<'a> {
 }
 
 /// Reference to a single file in the [`Filesystem`]
-pub struct File<'a> {
+pub struct Entry<'a> {
     fs: &'a Filesystem,
     index: u5,
 }
 
-impl<'a> File<'a> {
-    pub fn name(&self) -> Result<Name<8>, NameFromBytesError> {
+impl<'a> File for Entry<'a> {
+    fn name(&self) -> Result<Name<8>, NameFromBytesError> {
         Name::from_bytes(self.fs.file_name(self.index))
     }
 
-    pub fn version(&self) -> u8 {
+    fn version(&self) -> u8 {
         let offset = FILE_VERSIONS_RANGE.start + u8::from(self.index) as usize;
         self.fs.bytes[offset]
     }
 
-    pub fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
+    fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
         let index = self.index.into();
 
         let first_block = self
@@ -362,7 +364,7 @@ impl<'a> File<'a> {
         self.fs.decompress(first_block as u8 + 1)
     }
 
-    pub fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
+    fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
         let name = self.name()?;
 
         let indices = self.fs.file_blocks(self.index);
@@ -373,15 +375,6 @@ impl<'a> File<'a> {
 
         Ok(LsdSng::new(name, self.version(), blocks))
     }
-}
-
-/// An error describing what could go wrong convering a [`File`] to an [`LsdSng`]
-#[derive(Debug, Error)]
-pub enum FileToLsdSngError {
-    /// All correctly initialized filesystem memory has certain magic bytes set.
-    /// This error is returned when that isn't the case during a read.
-    #[error("The initialization check failed")]
-    Name(#[from] NameFromBytesError),
 }
 
 #[cfg(test)]

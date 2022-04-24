@@ -2,14 +2,17 @@
 
 use crate::sram::{
     fs::{
-        serde::{decompress::decompress_block, End},
-        Filesystem,
+        serde::{
+            compress::{compress_block, CompressBlockError},
+            decompress::decompress_block,
+            End,
+        },
+        File, Filesystem,
     },
     name::{Name, NameFromBytesError},
     song::{SongMemory, SongMemoryReadError},
 };
 use std::{
-    fs::File,
     io::{self, Cursor, Read, Seek, SeekFrom, Write},
     path::Path,
     slice,
@@ -18,7 +21,8 @@ use thiserror::Error;
 
 /// A song + a name and version
 ///
-/// This is often used to export and import songs from/to [`SRam`]/save files
+/// This is often used to export and import songs from/to [`SRam`](crate::sram)/save files
+#[derive(Clone)]
 pub struct LsdSng {
     pub name: Name<8>,
     pub version: u8,
@@ -32,6 +36,37 @@ impl LsdSng {
             version,
             blocks,
         }
+    }
+
+    /// Create an [`LsdSng`] by compressing a song
+    pub fn from_song(
+        name: Name<8>,
+        version: u8,
+        song: &SongMemory,
+    ) -> Result<Self, CompressBlockError> {
+        let mut blocks = Vec::new();
+
+        let mut reader = Cursor::new(song.as_slice());
+
+        // Loop until we've reached end-of-file
+        loop {
+            let mut block = [0; Filesystem::BLOCK_LEN];
+            let end = compress_block(&mut reader, Cursor::new(block.as_mut_slice()), || {
+                Some(blocks.len() as u8)
+            })?;
+
+            blocks.push(block);
+
+            if end == End::EndOfFile {
+                break;
+            }
+        }
+
+        Ok(Self::new(
+            name,
+            version,
+            blocks.iter().flatten().copied().collect(),
+        ))
     }
 
     /// Read an LsdSng from I/O
@@ -63,7 +98,7 @@ impl LsdSng {
     where
         P: AsRef<Path>,
     {
-        Self::from_reader(File::open(path)?)
+        Self::from_reader(std::fs::File::open(path)?)
     }
 
     /// Serialize the LsdSng to bytes
@@ -83,11 +118,20 @@ impl LsdSng {
     where
         P: AsRef<Path>,
     {
-        self.to_writer(File::create(path)?)
+        self.to_writer(std::fs::File::create(path)?)
+    }
+}
+
+impl File for LsdSng {
+    fn name(&self) -> Result<Name<8>, NameFromBytesError> {
+        Ok(self.name.clone())
     }
 
-    /// Decompress the song stored in the [`LsdSng`]
-    pub fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
+    fn version(&self) -> u8 {
+        self.version
+    }
+
+    fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
         let mut reader = Cursor::new(&self.blocks);
         let mut memory = [0; SongMemory::LEN];
         let mut writer = Cursor::new(memory.as_mut_slice());
@@ -103,6 +147,10 @@ impl LsdSng {
         assert_eq!(writer.stream_position()?, SongMemory::LEN as u64);
 
         SongMemory::from_reader(Cursor::new(memory))
+    }
+
+    fn lsdsng(&self) -> Result<LsdSng, super::fs::FileToLsdSngError> {
+        Ok(self.clone())
     }
 }
 

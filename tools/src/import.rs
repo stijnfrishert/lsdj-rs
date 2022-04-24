@@ -2,7 +2,11 @@ use crate::utils::{has_extension, iter_files};
 use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
-    sram::{fs::Filesystem, lsdsng::LsdSng, SRam},
+    sram::{
+        fs::{File, Filesystem},
+        lsdsng::LsdSng,
+        SRam,
+    },
     u5,
 };
 use std::path::PathBuf;

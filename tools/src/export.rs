@@ -1,6 +1,9 @@
 use anyhow::{Context, Result};
 use clap::Args;
-use lsdj::sram::{fs::Filesystem, SRam};
+use lsdj::sram::{
+    fs::{File, Filesystem},
+    SRam,
+};
 use std::{env::current_dir, fs::create_dir_all};
 
 use std::path::PathBuf;
