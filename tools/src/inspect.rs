@@ -6,18 +6,14 @@ use lsdj::sram::{
     lsdsng::LsdSng,
     SRam,
 };
-use pathdiff::diff_paths;
-use std::{
-    iter::once,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 /// Inspect LSDJ save files for their contents
 #[derive(Args)]
 #[clap(author, version)]
 pub struct InspectArgs {
     /// The path to the file to inspect
-    path: PathBuf,
+    path: Vec<PathBuf>,
 
     /// Search the folder recursively
     #[clap(short, long)]
@@ -25,27 +21,24 @@ pub struct InspectArgs {
 }
 
 pub fn inspect(args: &InspectArgs) -> Result<()> {
-    let paths: Vec<_> = iter_files(once(&args.path), args.recursive, &["sav", "lsdsng"])
+    let paths: Vec<_> = iter_files(&args.path, args.recursive, &["sav", "lsdsng"])
         .map(|entry| entry.path().to_owned())
         .collect();
 
     if let Some((last, rest)) = paths.split_last() {
         for path in rest {
-            print(path, args)?;
+            print(path)?;
             println!();
         }
 
-        print(last, args)?;
+        print(last)?;
     }
 
     Ok(())
 }
 
-fn print(path: &Path, args: &InspectArgs) -> Result<()> {
-    println!(
-        "{}",
-        diff_paths(path, &args.path).unwrap().to_string_lossy()
-    );
+fn print(path: &Path) -> Result<()> {
+    println!("{}", path.to_string_lossy());
 
     match path.extension().and_then(|str| str.to_str()) {
         Some("sav") => {
