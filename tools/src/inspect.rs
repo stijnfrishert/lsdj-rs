@@ -3,6 +3,7 @@ use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{
     file::{filesystem::Filesystem, File},
+    lsdsng::LsdSng,
     SRam,
 };
 use pathdiff::diff_paths;
@@ -24,7 +25,7 @@ pub struct InspectArgs {
 }
 
 pub fn inspect(args: &InspectArgs) -> Result<()> {
-    let paths: Vec<_> = iter_files(once(&args.path), args.recursive, &["sav"])
+    let paths: Vec<_> = iter_files(once(&args.path), args.recursive, &["sav", "lsdsng"])
         .map(|entry| entry.path().to_owned())
         .collect();
 
@@ -41,24 +42,28 @@ pub fn inspect(args: &InspectArgs) -> Result<()> {
 }
 
 fn print(path: &Path, args: &InspectArgs) -> Result<()> {
-    let sram = SRam::from_file(&path).context("Reading the SRAM from file failed")?;
+    println!(
+        "{}",
+        diff_paths(path, &args.path).unwrap().to_string_lossy()
+    );
 
-    let path = diff_paths(path, &args.path).unwrap();
+    match path.extension().and_then(|str| str.to_str()) {
+        Some("sav") => {
+            let sram = SRam::from_file(&path).context("Reading the SRAM from file failed")?;
 
-    println!("{}", path.to_string_lossy());
-    print_mem(&sram);
+            print_mem(&sram);
 
-    for (index, file) in sram.filesystem.files().enumerate() {
-        if let Some(file) = file {
-            let song = file.decompress().context("Could not decompress file")?;
-
-            println!(
-                "{index:>3} | {:<8} | v{:03} | f{:03}",
-                format!("{}", file.name().context("Could not parse the file name")?),
-                file.version(),
-                song.format_version()
-            );
+            for (index, file) in sram.filesystem.files().enumerate() {
+                if let Some(file) = file {
+                    print_file(index, &file)?;
+                }
+            }
         }
+        Some("lsdsng") => {
+            let lsdsng = LsdSng::from_file(&path).context("Reading the LsdSng from file failed")?;
+            print_file(0, &lsdsng)?;
+        }
+        _ => (),
     }
 
     Ok(())
@@ -76,4 +81,17 @@ fn print_mem(sram: &SRam) {
         "=".repeat(bar),
         " ".repeat(BAR_LEN - bar)
     );
+}
+
+fn print_file(index: usize, file: &impl File) -> Result<()> {
+    let song = file.decompress().context("Could not decompress file")?;
+
+    println!(
+        "{index:>3} | {:<8} | v{:03} | f{:03}",
+        format!("{}", file.name().context("Could not parse the file name")?),
+        file.version(),
+        song.format_version()
+    );
+
+    Ok(())
 }
