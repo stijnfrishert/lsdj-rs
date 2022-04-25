@@ -3,8 +3,10 @@ use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
     sram::{
-        file::{filesystem::Filesystem, File},
+        file::{filesystem::Filesystem, serde::compress::CompressBlockError, File},
         lsdsng::LsdSng,
+        name::Name,
+        song::SongMemory,
         SRam,
     },
     u5,
@@ -42,9 +44,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
                 .decompress()
                 .context(format!("Could not decompress {}", path.to_string_lossy()))?;
 
-            sram.filesystem
-                .insert_file(u5::new(index), &lsdsng.name, lsdsng.version, &song)
-                .context("Could not insert song")?;
+            insert(&mut sram, index, &lsdsng.name, lsdsng.version, &song)?;
 
             println!("{:02} => {}", index, path.to_string_lossy());
 
@@ -63,9 +63,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
 
                     let name = file.name()?;
 
-                    sram.filesystem
-                        .insert_file(u5::new(index), &name, file.version(), &song)
-                        .context("Could not insert song")?;
+                    insert(&mut sram, index, &name, file.version(), &song)?;
 
                     println!(
                         "{:02} => {} - {}",
@@ -90,4 +88,25 @@ pub fn import(args: ImportArgs) -> Result<()> {
     println!("Wrote {}", args.output.to_string_lossy());
 
     Ok(())
+}
+
+fn insert(
+    sram: &mut SRam,
+    index: u8,
+    name: &Name<8>,
+    version: u8,
+    song: &SongMemory,
+) -> Result<()> {
+    match sram
+        .filesystem
+        .insert_file(u5::new(index), name, version, song)
+    {
+        Err(CompressBlockError::NoBlockLeft) => {
+            Err(Error::msg("Ran out of space in the SRAM memory"))
+        }
+        result => {
+            result.context("Could not insert song")?;
+            Ok(())
+        }
+    }
 }
