@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{
-    fs::{File, Filesystem},
+    file::{filesystem::Filesystem, File},
     SRam,
 };
 use std::{env::current_dir, fs::create_dir_all};

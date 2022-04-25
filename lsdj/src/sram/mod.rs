@@ -1,11 +1,11 @@
 //! Anything having to do with LSDJ SRAM/save files (versus the ROM)
 
-pub mod fs;
+pub mod file;
 pub mod lsdsng;
 pub mod name;
 pub mod song;
 
-use fs::{Filesystem, FilesystemReadError};
+use file::filesystem::{Filesystem, FilesystemReadError};
 use name::{Name, NameFromBytesError};
 use song::{SongMemory, SongMemoryReadError};
 use std::{

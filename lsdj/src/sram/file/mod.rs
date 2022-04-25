@@ -1,5 +1,10 @@
+//! Tools for working with the concept of LSDJ files (lsdsng, the compressed files in the SRAM, etc.)
+
+pub mod filesystem;
+pub mod serde;
+
 use crate::sram::{
-    fs::serde::compress::CompressBlockError,
+    file::serde::compress::CompressBlockError,
     lsdsng::LsdSng,
     name::{Name, NameFromBytesError},
     song::{SongMemory, SongMemoryReadError},

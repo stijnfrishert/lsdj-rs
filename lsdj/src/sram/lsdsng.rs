@@ -1,13 +1,14 @@
 //! The .lsdsng format
 
 use crate::sram::{
-    fs::{
+    file::{
+        filesystem::Filesystem,
         serde::{
             compress::{compress_block, CompressBlockError},
             decompress::decompress_block,
             End,
         },
-        File, Filesystem,
+        File, FileToLsdSngError,
     },
     name::{Name, NameFromBytesError},
     song::{SongMemory, SongMemoryReadError},
@@ -149,7 +150,7 @@ impl File for LsdSng {
         SongMemory::from_reader(Cursor::new(memory))
     }
 
-    fn lsdsng(&self) -> Result<LsdSng, super::fs::FileToLsdSngError> {
+    fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
         Ok(self.clone())
     }
 }

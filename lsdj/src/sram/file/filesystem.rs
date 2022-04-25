@@ -1,18 +1,15 @@
-//! The filesystem that LSDJ uses to store compressed songs in the [`SRam`](crate::sram)
-
-mod file;
-pub mod serde;
-
+use super::{
+    serde::{
+        compress::{compress_block, CompressBlockError},
+        decompress::decompress_block,
+        End,
+    },
+    File, FileToLsdSngError,
+};
 use crate::sram::{
     lsdsng::LsdSng,
     song::{SongMemory, SongMemoryReadError},
     Name, NameFromBytesError,
-};
-pub use file::{File, FileToLsdSngError};
-use serde::{
-    compress::{compress_block, CompressBlockError},
-    decompress::decompress_block,
-    End,
 };
 use std::{
     collections::HashMap,

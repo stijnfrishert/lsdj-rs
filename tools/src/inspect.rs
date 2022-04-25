@@ -2,7 +2,7 @@ use crate::utils::iter_files;
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{
-    fs::{File, Filesystem},
+    file::{filesystem::Filesystem, File},
     SRam,
 };
 use pathdiff::diff_paths;

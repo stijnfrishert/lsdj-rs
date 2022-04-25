@@ -3,7 +3,7 @@ use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
     sram::{
-        fs::{File, Filesystem},
+        file::{filesystem::Filesystem, File},
         lsdsng::LsdSng,
         SRam,
     },
