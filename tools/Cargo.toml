@@ -12,3 +12,4 @@ anyhow = "1.0.56"
 clap = {version = "3.0.10", features = ["derive"]}
 lsdj = {path = "../lsdj"}
 walkdir = "2.3.2"
+wild = "2.0.4"

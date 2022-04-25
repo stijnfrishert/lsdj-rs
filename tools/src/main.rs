@@ -14,7 +14,7 @@ enum Cli {
 }
 
 fn main() -> Result<()> {
-    match Cli::parse() {
+    match Cli::parse_from(wild::args()) {
         Cli::Inspect(args) => inspect(&args),
         Cli::Export(args) => export(args),
         Cli::Import(args) => import(args),
