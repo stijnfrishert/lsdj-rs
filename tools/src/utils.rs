@@ -1,4 +1,5 @@
-use std::path::Path;
+use anyhow::{Context, Result};
+use std::{io::stdin, path::Path};
 use walkdir::{DirEntry, WalkDir};
 
 pub fn iter_files<'a, I>(
@@ -38,4 +39,28 @@ pub fn has_extension(path: &Path, extension: &str) -> bool {
         Some(ext) => ext == extension,
         None => false,
     }
+}
+
+pub fn check_for_overwrite(path: &Path) -> Result<()> {
+    if path.exists() {
+        loop {
+            println!(
+                "{} already exists. Do you want to overwrite it? Y/n",
+                path.to_string_lossy()
+            );
+
+            let mut line = String::new();
+            stdin()
+                .read_line(&mut line)
+                .context("Could not read terminal input")?;
+
+            match line.as_str() {
+                "Y\n" => break,
+                "n\n" => std::process::exit(0),
+                _ => (),
+            }
+        }
+    }
+
+    Ok(())
 }

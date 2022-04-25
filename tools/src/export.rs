@@ -1,3 +1,4 @@
+use crate::utils::check_for_overwrite;
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::sram::{
@@ -73,6 +74,8 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
             }
 
             let path = folder.join(filename).with_extension("lsdsng");
+
+            check_for_overwrite(&path)?;
 
             lsdsng
                 .to_file(&path)

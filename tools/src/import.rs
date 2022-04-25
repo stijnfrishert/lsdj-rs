@@ -1,4 +1,4 @@
-use crate::utils::{has_extension, iter_files};
+use crate::utils::{check_for_overwrite, has_extension, iter_files};
 use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
@@ -46,7 +46,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
                 .insert_file(u5::new(index), &lsdsng.name, lsdsng.version, &song)
                 .context("Could not insert song")?;
 
-            println!("Imported to {:02}: {}", index, path.to_string_lossy());
+            println!("{:02} => {}", index, path.to_string_lossy());
 
             index += 1;
         } else if has_extension(path, "sav") {
@@ -68,7 +68,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
                         .context("Could not insert song")?;
 
                     println!(
-                        "Imported to {:02}: {} - {}",
+                        "{:02} => {} - {}",
                         index,
                         path.to_string_lossy(),
                         name.as_str(),
@@ -79,6 +79,8 @@ pub fn import(args: ImportArgs) -> Result<()> {
             }
         }
     }
+
+    check_for_overwrite(&args.output)?;
 
     sram.to_file(&args.output).context(format!(
         "Could not write SRAM to {}",
