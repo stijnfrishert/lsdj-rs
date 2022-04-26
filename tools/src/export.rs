@@ -78,7 +78,7 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
             check_for_overwrite(&path)?;
 
             lsdsng
-                .to_file(&path)
+                .to_path(&path)
                 .context("Could not write lsdsng to file")?;
 
             println!(

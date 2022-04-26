@@ -7,7 +7,7 @@ use crate::sram::{
     file::serde::compress::CompressBlockError,
     lsdsng::LsdSng,
     name::{FromBytesError, Name},
-    song::{SongMemory, SongMemoryReadError},
+    song::{FromReaderError, SongMemory},
 };
 use thiserror::Error;
 
@@ -18,7 +18,7 @@ use thiserror::Error;
 pub trait File {
     fn name(&self) -> Result<Name<8>, FromBytesError>;
     fn version(&self) -> u8;
-    fn decompress(&self) -> Result<SongMemory, SongMemoryReadError>;
+    fn decompress(&self) -> Result<SongMemory, FromReaderError>;
 
     fn lsdsng(&self) -> Result<LsdSng, FileToLsdSngError> {
         let name = self.name()?;
@@ -39,7 +39,7 @@ pub enum FileToLsdSngError {
 
     /// Decompressing the song failed
     #[error("Decompessing the song failed")]
-    Decompress(#[from] SongMemoryReadError),
+    Decompress(#[from] FromReaderError),
 
     /// Compressing the song failed
     #[error("Compressing the song failed")]

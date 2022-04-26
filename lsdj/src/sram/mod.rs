@@ -12,7 +12,7 @@ pub mod song;
 
 use file::filesystem::{Filesystem, FilesystemReadError};
 use name::{FromBytesError, Name};
-use song::{SongMemory, SongMemoryReadError};
+use song::SongMemory;
 use std::{
     fs::{create_dir_all, File},
     io::{self, Read, Write},
@@ -137,7 +137,7 @@ pub enum FromReaderError {
 
     /// Deserializing the working memory song from I/O failed
     #[error("Reading the working memory song failed")]
-    WorkingSong(#[from] SongMemoryReadError),
+    WorkingSong(#[from] song::FromReaderError),
 }
 
 /// Errors that might be returned from [`SRam::from_path()`]

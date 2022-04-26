@@ -53,7 +53,7 @@ fn print(path: &Path) -> Result<()> {
             }
         }
         Some("lsdsng") => {
-            let lsdsng = LsdSng::from_file(&path).context("Reading the LsdSng from file failed")?;
+            let lsdsng = LsdSng::from_path(&path).context("Reading the LsdSng from file failed")?;
             print_file(0, &lsdsng)?;
         }
         _ => (),

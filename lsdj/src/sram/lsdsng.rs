@@ -1,4 +1,4 @@
-//! The .lsdsng format
+//! The `.lsdsng` format
 
 use crate::sram::{
     file::{
@@ -10,8 +10,8 @@ use crate::sram::{
         },
         File, FileToLsdSngError,
     },
-    name::{FromBytesError, Name},
-    song::{SongMemory, SongMemoryReadError},
+    name::{self, Name},
+    song::{self, SongMemory},
 };
 use std::{
     io::{self, Cursor, Read, Seek, SeekFrom, Write},
@@ -20,17 +20,29 @@ use std::{
 };
 use thiserror::Error;
 
-/// A song + a name and version
+/// A [`Name`], version and compressed [`SongMemory`]
 ///
-/// This is often used to export and import songs from/to [`SRam`](crate::sram)/save files
+/// Because [`SRam`](crate::sram) consists of multiple songs, artists often export/import them to/from a
+/// format called `.lsdsng`. It's a simple "dumbed-down" version of the SRAM filesystem, containing the
+/// song name and version along with compressed data for just _one_ song.
 #[derive(Clone)]
 pub struct LsdSng {
+    /// The name of the song stored in the [`LsdSng`]
     pub name: Name<8>,
+
+    /// The song version (increased with every save)
     pub version: u8,
-    pub blocks: Vec<u8>,
+
+    /// The blocks that make up the compressed [`SongMemory`]
+    ///
+    /// The `.lsdsng` format is weird in the sense that any block jumps in the decompression algorithm
+    /// are to be discarded, because the blocks are just linearly copied over from the filesystem (which
+    /// might have had blocks from other songs interleaved).
+    blocks: Vec<u8>,
 }
 
 impl LsdSng {
+    /// Create a new [`LsdSng`] from its parts
     pub(crate) fn new(name: Name<8>, version: u8, blocks: Vec<u8>) -> Self {
         Self {
             name,
@@ -39,7 +51,7 @@ impl LsdSng {
         }
     }
 
-    /// Create an [`LsdSng`] by compressing a song
+    /// Create an [`LsdSng`] by compressing [`SongMemory`]
     pub fn from_song(
         name: Name<8>,
         version: u8,
@@ -70,8 +82,8 @@ impl LsdSng {
         ))
     }
 
-    /// Read an LsdSng from I/O
-    pub fn from_reader<R>(mut reader: R) -> Result<Self, LsdsngFromReaderError>
+    /// Read an [`LsdSng`] from an arbitrary I/O reader
+    pub fn from_reader<R>(mut reader: R) -> Result<Self, FromReaderError>
     where
         R: Read,
     {
@@ -94,15 +106,16 @@ impl LsdSng {
         })
     }
 
-    /// Read an LsdSng from file
-    pub fn from_file<P>(path: P) -> Result<Self, LsdsngFromReaderError>
+    /// Deserialize an [`LsdSng`] from a path on disk (.lsdsng)
+    pub fn from_path<P>(path: P) -> Result<Self, FromPathError>
     where
         P: AsRef<Path>,
     {
-        Self::from_reader(std::fs::File::open(path)?)
+        let file = std::fs::File::open(path)?;
+        Ok(Self::from_reader(file)?)
     }
 
-    /// Serialize the LsdSng to bytes
+    /// Serialize the [`LsdSng`] to an arbitrary I/O writer
     pub fn to_writer<W>(&self, mut writer: W) -> Result<(), io::Error>
     where
         W: Write,
@@ -114,8 +127,8 @@ impl LsdSng {
         Ok(())
     }
 
-    // Serialize the LsdSng to a file
-    pub fn to_file<P>(&self, path: P) -> Result<(), io::Error>
+    // Serialize the [`LsdSng`] to a path on disk (.lsdsng)
+    pub fn to_path<P>(&self, path: P) -> Result<(), io::Error>
     where
         P: AsRef<Path>,
     {
@@ -124,7 +137,7 @@ impl LsdSng {
 }
 
 impl File for LsdSng {
-    fn name(&self) -> Result<Name<8>, FromBytesError> {
+    fn name(&self) -> Result<Name<8>, name::FromBytesError> {
         Ok(self.name.clone())
     }
 
@@ -132,7 +145,7 @@ impl File for LsdSng {
         self.version
     }
 
-    fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
+    fn decompress(&self) -> Result<SongMemory, song::FromReaderError> {
         let mut reader = Cursor::new(&self.blocks);
         let mut memory = [0; SongMemory::LEN];
         let mut writer = Cursor::new(memory.as_mut_slice());
@@ -155,16 +168,28 @@ impl File for LsdSng {
     }
 }
 
-/// An error describing what could go wrong reading an [`LsdSng`] from I/O
+/// Errors that might be returned from [`LsdSng::from_reader()`]
 #[derive(Debug, Error)]
-pub enum LsdsngFromReaderError {
+pub enum FromReaderError {
     /// Any failure that has to do with I/O
     #[error("Something failed with I/O")]
-    Io(#[from] io::Error),
+    Read(#[from] io::Error),
 
-    /// Could not read the name successfully
+    /// Could not deserialize the name successfully
     #[error("Reading the name failed")]
-    Name(#[from] FromBytesError),
+    Name(#[from] name::FromBytesError),
+}
+
+/// Errors that might be returned from [`LsdSng::from_path()`]
+#[derive(Debug, Error)]
+pub enum FromPathError {
+    /// Could not open the file for reading
+    #[error("Could not open the file for reading")]
+    FileOpen(#[from] io::Error),
+
+    /// Deserialization from the file failed
+    #[error("Reading the LsdSng from file failed")]
+    Read(#[from] FromReaderError),
 }
 
 #[cfg(test)]

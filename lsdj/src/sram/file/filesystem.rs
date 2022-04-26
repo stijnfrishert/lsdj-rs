@@ -8,7 +8,7 @@ use super::{
 };
 use crate::sram::{
     lsdsng::LsdSng,
-    song::{SongMemory, SongMemoryReadError},
+    song::{FromReaderError, SongMemory},
     FromBytesError, Name,
 };
 use std::{
@@ -207,7 +207,7 @@ impl Filesystem {
     }
 
     /// Decompress a file starting at a specific block
-    fn decompress(&self, block: u8) -> Result<SongMemory, SongMemoryReadError> {
+    fn decompress(&self, block: u8) -> Result<SongMemory, FromReaderError> {
         let mut reader = Cursor::new(&self.bytes);
         reader.seek(SeekFrom::Start(Self::block_range(block).start as u64))?;
 
@@ -339,7 +339,7 @@ impl<'a> File for Entry<'a> {
         self.fs.bytes[offset]
     }
 
-    fn decompress(&self) -> Result<SongMemory, SongMemoryReadError> {
+    fn decompress(&self) -> Result<SongMemory, FromReaderError> {
         let index = self.index.into();
 
         let first_block = self

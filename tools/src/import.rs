@@ -39,7 +39,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
         }
 
         if has_extension(path, "lsdsng") {
-            let lsdsng = LsdSng::from_file(&path).context("Could not load {path}")?;
+            let lsdsng = LsdSng::from_path(&path).context("Could not load {path}")?;
             let song = lsdsng
                 .decompress()
                 .context(format!("Could not decompress {}", path.to_string_lossy()))?;

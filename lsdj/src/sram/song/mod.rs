@@ -1,13 +1,17 @@
 //! Song data and everything they're made of
 
-pub mod instrument;
-pub mod wave;
+pub(crate) mod instrument;
+pub(crate) mod wave;
 
 use std::io::{self, Read, Write};
 use thiserror::Error;
 
 /// A contiguous block of memory that represents unparsed song data
+///
+/// Future versions of this create might parse [`SongMemory`] into different formatted versions
+/// of songs, but for now this suffices to import and export songs from [`SRam`](crate::sram).
 pub struct SongMemory {
+    /// The bytes that make up the song
     bytes: [u8; Self::LEN],
 }
 
@@ -16,45 +20,43 @@ impl SongMemory {
     pub const LEN: usize = 0x8000;
 
     /// Construct a new, empty song, ready for use
+    ///
+    /// This sets all the necessary verification bytes that LSDJ uses to check for memory corruption.
     pub fn new() -> Self {
         Self {
             bytes: *include_bytes!("../../../../test/92L_empty.raw"),
         }
     }
 
-    /// Try and construct a song from bytes
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SongMemoryFromBytesError> {
+    /// Deserialize [`SongMemory`] from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, FromBytesError> {
         let bytes: [u8; Self::LEN] = bytes
             .try_into()
-            .map_err(|_| SongMemoryFromBytesError::IncorrectSize)?;
+            .map_err(|_| FromBytesError::IncorrectSize)?;
 
         let check = |offset| bytes[offset] == 0x72 && bytes[offset + 1] == 0x62;
 
         if check(0x1E78) || check(0x3E80) || check(0x7FF0) {
             Ok(Self { bytes })
         } else {
-            Err(SongMemoryFromBytesError::InitializationCheckIncorrect)
+            Err(FromBytesError::InitializationCheckIncorrect)
         }
     }
 
-    /// Deserialize song memory from an I/O reader
-    pub fn from_reader<R>(mut reader: R) -> Result<Self, SongMemoryReadError>
+    /// Deserialize [`SongMemory`] from an arbitrary I/O reader
+    pub fn from_reader<R>(mut reader: R) -> Result<Self, FromReaderError>
     where
         R: Read,
     {
         let mut bytes = [0; Self::LEN];
         reader.read_exact(bytes.as_mut_slice())?;
 
-        let check = |offset| bytes[offset] == 0x72 && bytes[offset + 1] == 0x62;
+        let song = Self::from_bytes(&bytes)?;
 
-        if check(0x1E78) || check(0x3E80) || check(0x7FF0) {
-            Ok(Self { bytes })
-        } else {
-            Err(SongMemoryReadError::InitializationCheckIncorrect)
-        }
+        Ok(song)
     }
 
-    /// Serialize song memory to an I/O writer
+    /// Serialize [`SongMemory`] to an arbitrary I/O writer
     pub fn to_writer<W>(&self, mut writer: W) -> Result<(), io::Error>
     where
         W: Write,
@@ -71,6 +73,11 @@ impl SongMemory {
     pub fn as_slice(&self) -> &[u8] {
         &self.bytes
     }
+
+    /// Access the bytes that make up the song
+    pub fn as_mut_slice(&mut self) -> &mut [u8] {
+        &mut self.bytes
+    }
 }
 
 impl Default for SongMemory {
@@ -79,9 +86,10 @@ impl Default for SongMemory {
     }
 }
 
-/// An error describing what could go wrong constructing a [`SongMemory`] from a byte slice
+/// Errors that might be returned from [`SongMemory::from_bytes()`]
 #[derive(Debug, Error)]
-pub enum SongMemoryFromBytesError {
+pub enum FromBytesError {
+    /// The passed in number of bytes isn't correct
     #[error("The slice isn't of the correct size")]
     IncorrectSize,
 
@@ -91,17 +99,16 @@ pub enum SongMemoryFromBytesError {
     InitializationCheckIncorrect,
 }
 
-/// An error describing what could go wrong reading a [`SongMemory`] from I/O
+/// Errors that might be returned from [`SongMemory::from_reader()`]
 #[derive(Debug, Error)]
-pub enum SongMemoryReadError {
-    /// All correctly initialized song memory has certain magic bytes set.
-    /// This error is returned when that isn't the case during a read.
-    #[error("The initialization check failed")]
-    InitializationCheckIncorrect,
-
-    /// Any failure that has to do with I/O
+pub enum FromReaderError {
+    /// Reading the bytes failed
     #[error("Something failed with I/O")]
-    Io(#[from] io::Error),
+    Read(#[from] io::Error),
+
+    /// Deserialization from the read bytes failed
+    #[error("Deserialiazation from the read bytes failed")]
+    FromBytes(#[from] FromBytesError),
 }
 
 #[cfg(test)]
