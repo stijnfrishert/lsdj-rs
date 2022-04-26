@@ -50,7 +50,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
 
             index += 1;
         } else if has_extension(path, "sav") {
-            let sav = SRam::from_file(&path)
+            let sav = SRam::from_path(&path)
                 .context(format!("Could not open {}", path.to_string_lossy()))?;
 
             for (source_index, file) in sav.filesystem.files().enumerate() {
@@ -80,7 +80,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
 
     check_for_overwrite(&args.output)?;
 
-    sram.to_file(&args.output).context(format!(
+    sram.to_path(&args.output).context(format!(
         "Could not write SRAM to {}",
         args.output.to_string_lossy()
     ))?;

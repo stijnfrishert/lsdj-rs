@@ -10,7 +10,7 @@ use crate::sram::{
         },
         File, FileToLsdSngError,
     },
-    name::{Name, NameFromBytesError},
+    name::{FromBytesError, Name},
     song::{SongMemory, SongMemoryReadError},
 };
 use std::{
@@ -124,7 +124,7 @@ impl LsdSng {
 }
 
 impl File for LsdSng {
-    fn name(&self) -> Result<Name<8>, NameFromBytesError> {
+    fn name(&self) -> Result<Name<8>, FromBytesError> {
         Ok(self.name.clone())
     }
 
@@ -164,7 +164,7 @@ pub enum LsdsngFromReaderError {
 
     /// Could not read the name successfully
     #[error("Reading the name failed")]
-    Name(#[from] NameFromBytesError),
+    Name(#[from] FromBytesError),
 }
 
 #[cfg(test)]

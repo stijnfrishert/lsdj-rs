@@ -6,7 +6,7 @@ pub mod serde;
 use crate::sram::{
     file::serde::compress::CompressBlockError,
     lsdsng::LsdSng,
-    name::{Name, NameFromBytesError},
+    name::{FromBytesError, Name},
     song::{SongMemory, SongMemoryReadError},
 };
 use thiserror::Error;
@@ -16,7 +16,7 @@ use thiserror::Error;
 /// Files are most commonly stored in the [`SRam`](crate::sram)'s filesystem,
 /// but an [`LsdSng`] is also a good example of a file.
 pub trait File {
-    fn name(&self) -> Result<Name<8>, NameFromBytesError>;
+    fn name(&self) -> Result<Name<8>, FromBytesError>;
     fn version(&self) -> u8;
     fn decompress(&self) -> Result<SongMemory, SongMemoryReadError>;
 
@@ -35,7 +35,7 @@ pub enum FileToLsdSngError {
     /// All correctly initialized filesystem memory has certain magic bytes set.
     /// This error is returned when that isn't the case during a read.
     #[error("The initialization check failed")]
-    Name(#[from] NameFromBytesError),
+    Name(#[from] FromBytesError),
 
     /// Decompressing the song failed
     #[error("Decompessing the song failed")]

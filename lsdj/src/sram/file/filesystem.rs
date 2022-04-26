@@ -9,7 +9,7 @@ use super::{
 use crate::sram::{
     lsdsng::LsdSng,
     song::{SongMemory, SongMemoryReadError},
-    Name, NameFromBytesError,
+    FromBytesError, Name,
 };
 use std::{
     collections::HashMap,
@@ -330,7 +330,7 @@ pub struct Entry<'a> {
 }
 
 impl<'a> File for Entry<'a> {
-    fn name(&self) -> Result<Name<8>, NameFromBytesError> {
+    fn name(&self) -> Result<Name<8>, FromBytesError> {
         Name::from_bytes(self.fs.file_name(self.index))
     }
 

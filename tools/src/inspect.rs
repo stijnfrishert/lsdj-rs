@@ -42,7 +42,7 @@ fn print(path: &Path) -> Result<()> {
 
     match path.extension().and_then(|str| str.to_str()) {
         Some("sav") => {
-            let sram = SRam::from_file(&path).context("Reading the SRAM from file failed")?;
+            let sram = SRam::from_path(&path).context("Reading the SRAM from file failed")?;
 
             print_mem(&sram);
 

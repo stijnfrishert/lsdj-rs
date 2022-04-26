@@ -37,7 +37,7 @@ pub struct ExportArgs {
 }
 
 pub fn export(mut args: ExportArgs) -> Result<()> {
-    let sram = SRam::from_file(&args.path).context("Reading the SRAM from file failed")?;
+    let sram = SRam::from_path(&args.path).context("Reading the SRAM from file failed")?;
 
     if args.index.is_empty() {
         args.index = (0..Filesystem::FILES_CAPACITY).collect();
