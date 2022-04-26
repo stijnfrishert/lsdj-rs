@@ -2,7 +2,7 @@ use super::{
     utils::{read_byte, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, DEFAULT_WAVE_BYTE, RLE_BYTE},
     End,
 };
-use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
+use crate::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
     io::{self, BufRead, Read, Seek, SeekFrom, Write},
     slice,

@@ -2,7 +2,7 @@
 
 pub mod filesystem;
 
-use crate::sram::{
+use crate::{
     lsdsng::LsdSng,
     name::{FromBytesError, Name},
     serde::CompressBlockError,

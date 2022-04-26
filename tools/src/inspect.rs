@@ -1,10 +1,10 @@
 use crate::utils::iter_files;
 use anyhow::{Context, Result};
 use clap::Args;
-use lsdj::sram::{
+use lsdj::{
     file::{filesystem::Filesystem, File},
     lsdsng::LsdSng,
-    SRam,
+    sram::SRam,
 };
 use std::path::{Path, PathBuf};
 

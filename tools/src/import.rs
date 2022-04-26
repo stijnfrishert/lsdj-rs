@@ -2,14 +2,12 @@ use crate::utils::{check_for_overwrite, has_extension, iter_files};
 use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
-    sram::{
-        file::{filesystem::Filesystem, File},
-        lsdsng::LsdSng,
-        name::Name,
-        serde::CompressBlockError,
-        song::SongMemory,
-        SRam,
-    },
+    file::{filesystem::Filesystem, File},
+    lsdsng::LsdSng,
+    name::Name,
+    serde::CompressBlockError,
+    song::SongMemory,
+    sram::SRam,
     u5,
 };
 use std::path::PathBuf;

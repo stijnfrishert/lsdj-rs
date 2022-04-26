@@ -1,6 +1,6 @@
 //! The `.lsdsng` format
 
-use crate::sram::{
+use crate::{
     file::{filesystem::Filesystem, File, FileToLsdSngError},
     name::{self, Name},
     serde::{compress_block, decompress_block, CompressBlockError, End},
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let source = include_bytes!("../../../test/92L_empty.lsdsng");
+        let source = include_bytes!("../../test/92L_empty.lsdsng");
         let lsdsng = LsdSng::from_reader(Cursor::new(source)).unwrap();
 
         assert_eq!(lsdsng.name, Name::<8>::from_str("EMPTY").unwrap());

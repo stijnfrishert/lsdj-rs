@@ -5,15 +5,10 @@
 //! emulators use to store the SRAM tied to a ROM. You can also download/upload `.sav`
 //! files to flashcarts for playback on real hardware.
 
-pub mod file;
-pub mod lsdsng;
-pub mod name;
-pub mod serde;
-pub mod song;
-
-use file::filesystem::{Filesystem, FilesystemReadError};
-use name::{FromBytesError, Name};
-use song::SongMemory;
+use crate::{
+    file::filesystem::{Filesystem, FilesystemReadError},
+    song::{self, SongMemory},
+};
 use std::{
     fs::{create_dir_all, File},
     io::{self, Read, Write},

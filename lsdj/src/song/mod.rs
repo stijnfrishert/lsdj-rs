@@ -1,4 +1,4 @@
-//! Song data and everything they're made of
+//! Unparsed LSDJ song memory
 
 pub(crate) mod instrument;
 pub(crate) mod wave;
@@ -24,7 +24,7 @@ impl SongMemory {
     /// This sets all the necessary verification bytes that LSDJ uses to check for memory corruption.
     pub fn new() -> Self {
         Self {
-            bytes: *include_bytes!("../../../../test/92L_empty.raw"),
+            bytes: *include_bytes!("../../../test/92L_empty.raw"),
         }
     }
 
@@ -120,7 +120,7 @@ mod tests {
         use std::io::Cursor;
 
         let song = {
-            let bytes = Cursor::new(include_bytes!("../../../../test/92L_empty.sav"));
+            let bytes = Cursor::new(include_bytes!("../../../test/92L_empty.sav"));
             SongMemory::from_reader(bytes).expect("could not parse song")
         };
 

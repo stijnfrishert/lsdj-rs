@@ -1,9 +1,9 @@
 use crate::utils::check_for_overwrite;
 use anyhow::{Context, Result};
 use clap::Args;
-use lsdj::sram::{
+use lsdj::{
     file::{filesystem::Filesystem, File},
-    SRam,
+    sram::SRam,
 };
 use std::{env::current_dir, fs::create_dir_all};
 

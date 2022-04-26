@@ -5,7 +5,7 @@ use super::{
     },
     End,
 };
-use crate::sram::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
+use crate::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
     io::{Read, Result, Seek, Write},
     slice,
