@@ -1,12 +1,9 @@
 //! The `.lsdsng` format
 
 use crate::sram::{
-    file::{
-        filesystem::Filesystem,
-        serde::{compress_block, decompress_block, CompressBlockError, End},
-        File, FileToLsdSngError,
-    },
+    file::{filesystem::Filesystem, File, FileToLsdSngError},
     name::{self, Name},
+    serde::{compress_block, decompress_block, CompressBlockError, End},
     song::{self, SongMemory},
 };
 use std::{

@@ -8,6 +8,7 @@
 pub mod file;
 pub mod lsdsng;
 pub mod name;
+pub mod serde;
 pub mod song;
 
 use file::filesystem::{Filesystem, FilesystemReadError};

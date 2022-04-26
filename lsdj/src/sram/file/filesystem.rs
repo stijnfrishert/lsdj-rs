@@ -1,9 +1,7 @@
-use super::{
-    serde::{compress_block, decompress_block, CompressBlockError, End},
-    File, FileToLsdSngError,
-};
+use super::{File, FileToLsdSngError};
 use crate::sram::{
     lsdsng::LsdSng,
+    serde::{compress_block, decompress_block, CompressBlockError, End},
     song::{FromReaderError, SongMemory},
     FromBytesError, Name,
 };
