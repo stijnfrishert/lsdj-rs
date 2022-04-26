@@ -10,6 +10,13 @@ use std::{
 use system_interface::io::Peek;
 use thiserror::Error;
 
+/// Compress data from an I/O reader into an LSDJ block
+///
+/// This function reads bytes and compresses them as described [here](https://littlesounddj.fandom.com/wiki/File_Management_Structure). The call
+/// returns when either:
+///
+///  * The end of the reader has been reached, which returns [`End::EndOfFile`]
+///  * The block is full. `next_block()` is called for retrieve the index of the next block, and [`End::JumpToBlock`] is returned.
 pub fn compress_block<R, W, F>(
     mut reader: R,
     mut writer: W,
@@ -46,13 +53,14 @@ where
     }
 }
 
+/// Errors that might be returned from [`compress_block()`]
 #[derive(Debug, Error)]
 pub enum CompressBlockError {
     // Something went wrong with reading or writing from I/O
     #[error("Reading/writing from I/O failed")]
     Io(#[from] io::Error),
 
-    // There are no more empty blocks left in the filesystem
+    // There are no more empty blocks left to continue to
     #[error("The filesystem ran out of blocks")]
     NoBlockLeft,
 }

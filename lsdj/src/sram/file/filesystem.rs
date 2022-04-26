@@ -1,9 +1,5 @@
 use super::{
-    serde::{
-        compress::{compress_block, CompressBlockError},
-        decompress::decompress_block,
-        End,
-    },
+    serde::{compress_block, decompress_block, CompressBlockError, End},
     File, FileToLsdSngError,
 };
 use crate::sram::{

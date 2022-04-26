@@ -4,7 +4,7 @@ pub mod filesystem;
 pub mod serde;
 
 use crate::sram::{
-    file::serde::compress::CompressBlockError,
+    file::serde::CompressBlockError,
     lsdsng::LsdSng,
     name::{FromBytesError, Name},
     song::{FromReaderError, SongMemory},

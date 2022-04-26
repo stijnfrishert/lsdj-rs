@@ -11,12 +11,13 @@ use std::{
     slice,
 };
 
-#[derive(Debug, PartialEq, Eq)]
-enum CmdContinuation {
-    Continue,
-    End(End),
-}
-
+/// Decompress data from an LSDJ block reader to an arbitrary I/O writer
+///
+/// This function reads bytes and decompresses them as described [here](https://littlesounddj.fandom.com/wiki/File_Management_Structure). The call
+/// returns when either:
+///
+///  * An EOF byte has been read, ending the decompression algorithm. This returns [`End::EndOfFile`]
+///  * A block jump command has been read, returning [`End::JumpToBlock`]
 pub fn decompress_block<R, W>(mut reader: R, mut writer: W) -> Result<End>
 where
     R: Read,
@@ -32,6 +33,12 @@ where
             value => writer.write_all(slice::from_ref(&value))?,
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum CmdContinuation {
+    Continue,
+    End(End),
 }
 
 fn decompress_rle_byte<R, W>(mut reader: R, mut writer: W) -> Result<()>

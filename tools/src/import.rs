@@ -3,7 +3,7 @@ use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
     sram::{
-        file::{filesystem::Filesystem, serde::compress::CompressBlockError, File},
+        file::{filesystem::Filesystem, serde::CompressBlockError, File},
         lsdsng::LsdSng,
         name::Name,
         song::SongMemory,
