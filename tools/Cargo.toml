@@ -1,8 +1,13 @@
 [package]
 authors = ["Stijn Frishert <info@stijnfrishert.com>"]
+categories = ["command-line-utilities"]
 description = "A set of tools for working with LSDJ files"
 edition = "2021"
+homepage = "https://github.com/stijnfrishert/lsdj-rs"
+keywords = ["lsdj", "chiptune", "gameboy", "music"]
+license = "MIT OR Apache-2.0"
 name = "lsdj-tools"
+readme = "README.md"
 repository = "https://github.com/stijnfrishert/lsdj-rs"
 version = "1.0.0"
 
