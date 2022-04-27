@@ -112,3 +112,7 @@ OPTIONS:
 01 => banger2.lsdsng
 Wrote test.sav
 ```
+
+## Support
+
+If you like this crate and want to support me somehow, consider buying some of [my music](https://4ntler.bandcamp.com/).
