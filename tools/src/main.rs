@@ -68,7 +68,7 @@
 //!
 //! ### Example
 //!
-//! ```
+//! ```console
 //! 4ntler@mbp > lsdj-tools export -pv bangers.sav
 //! 00. YOKAI    => 00_YOKAI_v1B.lsdsng
 //! 01. ASPHALT  => 01_ASPHALT_v13.lsdsng
