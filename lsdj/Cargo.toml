@@ -1,9 +1,10 @@
 [package]
+authors = ["Stijn Frishert <info@stijnfrishert.com>"]
+description = "Library for interfacing with LSDJ files and memory"
 edition = "2021"
 name = "lsdj"
-version = "0.1.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/stijnfrishert/lsdj-rs"
+version = "1.0.0"
 
 [dependencies]
 system-interface = "0.20.0"

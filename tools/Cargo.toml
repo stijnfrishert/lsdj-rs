@@ -1,15 +1,14 @@
 [package]
-authors = ["Stijn Frishert"]
+authors = ["Stijn Frishert <info@stijnfrishert.com>"]
 description = "A set of tools for working with LSDJ files"
 edition = "2021"
 name = "lsdj-tools"
-version = "0.1.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/stijnfrishert/lsdj-rs"
+version = "1.0.0"
 
 [dependencies]
 anyhow = "1.0.56"
 clap = {version = "3.0.10", features = ["derive"]}
-lsdj = {path = "../lsdj"}
+lsdj = {version = "1.0", path = "../lsdj"}
 walkdir = "2.3.2"
 wild = "2.0.4"
