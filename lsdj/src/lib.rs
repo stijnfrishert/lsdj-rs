@@ -8,7 +8,7 @@
 //!
 //! ## Example
 //!
-//! ```no_run
+//! ```rust no_run
 //! use lsdj::{
 //!     sram::SRam,
 //!     fs::{Index, File}

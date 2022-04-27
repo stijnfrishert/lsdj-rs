@@ -8,7 +8,7 @@ This crate provides an alternative library for manipulating LSDJ save files/SRAM
 
 ## Example
 
-```no_run
+```rust no_run
 use lsdj::{
     sram::SRam,
     fs::{Index, File}
