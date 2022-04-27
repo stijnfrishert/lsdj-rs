@@ -9,9 +9,9 @@ use std::{env::current_dir, fs::create_dir_all};
 
 use std::path::PathBuf;
 
-/// Export songs from an LSDJ save file
+/// Export .lsdsng's from .sav files
 #[derive(Args)]
-#[clap(author, version)]
+#[clap(author, version, long_about = None)]
 pub struct ExportArgs {
     /// The path to the save file to export from
     path: PathBuf,
@@ -75,18 +75,18 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
 
             let path = folder.join(filename).with_extension("lsdsng");
 
-            check_for_overwrite(&path)?;
+            if check_for_overwrite(&path)? {
+                lsdsng
+                    .to_path(&path)
+                    .context("Could not write lsdsng to file")?;
 
-            lsdsng
-                .to_path(&path)
-                .context("Could not write lsdsng to file")?;
-
-            println!(
-                "{:02}. {:8} => {}",
-                index,
-                lsdsng.name.as_str(),
-                path.to_string_lossy()
-            );
+                println!(
+                    "{:02}. {:8} => {}",
+                    index,
+                    lsdsng.name.as_str(),
+                    path.file_name().unwrap().to_string_lossy()
+                );
+            }
         }
     }
 

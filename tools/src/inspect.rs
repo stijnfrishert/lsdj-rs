@@ -8,11 +8,11 @@ use lsdj::{
 };
 use std::path::{Path, PathBuf};
 
-/// Inspect LSDJ save files for their contents
+/// Inspect LSDJ .sav and .lsdsng files, or even entire directories for their contents
 #[derive(Args)]
-#[clap(author, version)]
+#[clap(author, version, long_about = None)]
 pub struct InspectArgs {
-    /// The path to the file to inspect
+    /// The path(s) to inspect
     path: Vec<PathBuf>,
 
     /// Search the folder recursively

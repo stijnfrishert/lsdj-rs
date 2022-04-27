@@ -41,11 +41,11 @@ pub fn has_extension(path: &Path, extension: &str) -> bool {
     }
 }
 
-pub fn check_for_overwrite(path: &Path) -> Result<()> {
+pub fn check_for_overwrite(path: &Path) -> Result<bool> {
     if path.exists() {
         loop {
             println!(
-                "{} already exists. Do you want to overwrite it? Y/n",
+                "{} already exists.\nDo you want to overwrite it? Y/n",
                 path.to_string_lossy()
             );
 
@@ -55,12 +55,12 @@ pub fn check_for_overwrite(path: &Path) -> Result<()> {
                 .context("Could not read terminal input")?;
 
             match line.as_str() {
-                "Y\n" => break,
-                "n\n" => std::process::exit(0),
+                "Y\n" => break Ok(true),
+                "n\n" => break Ok(false),
                 _ => (),
             }
         }
+    } else {
+        Ok(true)
     }
-
-    Ok(())
 }

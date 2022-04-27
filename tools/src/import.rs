@@ -11,14 +11,14 @@ use lsdj::{
 };
 use std::path::PathBuf;
 
-/// Import songs into an LSDJ save file
+/// Import .lsdsng's into a .sav file
 #[derive(Args)]
-#[clap(author, version)]
+#[clap(author, version, long_about = None)]
 pub struct ImportArgs {
-    /// Paths to the songs that shoud be imported into a save
+    /// Paths to the songs that should be imported into a save
     song: Vec<PathBuf>,
 
-    /// The output path (or a default name if not provided)
+    /// The output path
     #[clap(short, long)]
     output: PathBuf,
 }
@@ -76,14 +76,14 @@ pub fn import(args: ImportArgs) -> Result<()> {
         }
     }
 
-    check_for_overwrite(&args.output)?;
+    if check_for_overwrite(&args.output)? {
+        sram.to_path(&args.output).context(format!(
+            "Could not write SRAM to {}",
+            args.output.to_string_lossy()
+        ))?;
 
-    sram.to_path(&args.output).context(format!(
-        "Could not write SRAM to {}",
-        args.output.to_string_lossy()
-    ))?;
-
-    println!("Wrote {}", args.output.to_string_lossy());
+        println!("Wrote {}", args.output.to_string_lossy());
+    }
 
     Ok(())
 }
