@@ -3,7 +3,7 @@ use crate::{
     lsdsng::LsdSng,
     name::{FromBytesError, Name},
     serde::{compress_block, decompress_block, CompressBlockError, End},
-    song::{FromReaderError, SongMemory},
+    song::{self, SongMemory},
 };
 use std::{
     collections::HashMap,
@@ -12,7 +12,9 @@ use std::{
     ops::Range,
 };
 use thiserror::Error;
-use ux::u5;
+
+/// A 5-bit (0 - 32) index into the [`Filesystem`]
+pub type Index = ux::u5;
 
 const FILE_VERSIONS_RANGE: Range<usize> = 0x0100..0x0120;
 const CHECK_RANGE: Range<usize> = 0x013E..0x0140;
@@ -22,7 +24,20 @@ const NO_ACTIVE_FILE: u8 = 0xFF;
 const ALLOC_TABLE_RANGE: Range<usize> = 0x0141..0x0200;
 const UNUSED_BLOCK: u8 = 0xFF;
 
-/// The file system that LSDJ uses to compress songs that are currently not being edited
+/// A filesystem for storing compressed [`File`]'s
+///
+/// LSDJ [`SRam`](crate::sram) consists of one uncompressed song, and a filesystem storage where songs not
+/// currently being worked on can be compressed and stored. [`Filesystem`] presents an interface
+/// for retrieving and saving files into the storage. The actual compression algorithm is
+/// implemented in [`crate::serde`].
+///
+/// The LSDJ filesystem has a maximum capacity of 32 files, no matter how much space they take
+/// up. There is space allocated for the name and version number of each file regardless. Whether
+/// a file entry slot is actually in use solely depends on whether and compressed data blocks can
+/// be found for that file index.
+///
+/// The compression itself is done in blocks of 512 bytes each, according to the specified
+/// [algorithm](https://littlesounddj.fandom.com/wiki/File_Management_Structure).
 pub struct Filesystem {
     bytes: [u8; Self::LEN],
 }
@@ -31,16 +46,20 @@ impl Filesystem {
     /// The maximal number of files that can be stored in the filesystem
     pub const FILES_CAPACITY: usize = 0x20;
 
-    /// The length in bytes of a compression block
-    pub(crate) const BLOCK_LEN: usize = 0x200;
-
     /// The amount of blocks available in the filesystem
     pub const BLOCKS_CAPACITY: usize = 0xC0;
+
+    /// The length in bytes of a compression block
+    pub(crate) const BLOCK_LEN: usize = 0x200;
 
     /// The length in bytes of the entire filesystem
     const LEN: usize = Self::BLOCK_LEN * Self::BLOCKS_CAPACITY;
 
-    /// Construct a new, empty filesystem
+    /// Construct a valid, but empty filesystem
+    ///
+    /// When LSDJ initializes SRAM, it sets some bytes for later verification against
+    /// memory corruption. This function does so too, resulting in an empty, but valid
+    /// filesystem
     pub fn new() -> Self {
         let mut bytes = [0; Self::LEN];
 
@@ -52,8 +71,8 @@ impl Filesystem {
         Self { bytes }
     }
 
-    /// Deserialize a filesystem from an I/O reader
-    pub fn from_reader<R>(mut reader: R) -> Result<Self, FilesystemReadError>
+    /// Deserialize a [`Filesystem`] from an arbitrary I/O reader
+    pub fn from_reader<R>(mut reader: R) -> Result<Self, FromReaderError>
     where
         R: Read,
     {
@@ -61,13 +80,13 @@ impl Filesystem {
         reader.read_exact(bytes.as_mut_slice())?;
 
         if bytes[CHECK_RANGE] != CHECK_VALUE {
-            return Err(FilesystemReadError::InitializationCheckIncorrect);
+            return Err(FromReaderError::InitializationCheckIncorrect);
         }
 
         Ok(Self { bytes })
     }
 
-    // Serialize the filesystem to an I/O writer
+    // Serialize the [`Filesystem`] to an arbitrary I/O writer
     pub fn to_writer<W>(&self, mut writer: W) -> Result<(), io::Error>
     where
         W: Write,
@@ -75,14 +94,20 @@ impl Filesystem {
         writer.write_all(&self.bytes)
     }
 
-    /// Does a file have contents?
-    pub fn is_file_in_use(&self, index: u5) -> bool {
+    /// Is any compessed song data stored for the file slot at this index?
+    fn is_file_in_use(&self, index: Index) -> bool {
         let index = index.into();
         self.alloc_table().iter().any(|block| *block == index)
     }
 
-    /// Retrieve a file from the filesystem
-    pub fn file(&self, index: u5) -> Option<Entry> {
+    /// Retrieve a [`File`] [`Entry`] from the filesystem
+    ///
+    /// This function either returns an actual file entry in the filesystem if it
+    /// can find compressed song data for the index, or [`None`] if the file slot
+    /// is empty.
+    ///
+    /// The resulting [`Entry`] can be queried for [`Name`], version and [`SongMemory`].
+    pub fn file(&self, index: Index) -> Option<Entry> {
         if self.is_file_in_use(index) {
             Some(Entry { fs: self, index })
         } else {
@@ -90,15 +115,21 @@ impl Filesystem {
         }
     }
 
-    /// Iterate over the files in the filesystem
+    /// Iterate over all the [`File`]'s in the filesystem
     pub fn files(&self) -> Entries {
         Entries { fs: self, index: 0 }
     }
 
     /// Insert a new file into the filesystem
+    ///
+    /// This function tries to compress the provided song memory into the filesystem. It can
+    /// fail if there is not enough space for the resulting compression blocks, at which point
+    /// it won't insert anything at all.
+    ///
+    /// If a file already existed at this index, the old file is returned as an [`LsdSng`].
     pub fn insert_file(
         &mut self,
-        file: u5,
+        file: Index,
         name: &Name<8>,
         version: u8,
         song: &SongMemory,
@@ -158,7 +189,9 @@ impl Filesystem {
     }
 
     /// Remove a file from the filesystem
-    pub fn remove_file(&mut self, index: u5) -> Option<LsdSng> {
+    ///
+    /// Returns either the file, or [`None`] if no file at that index existed
+    pub fn remove_file(&mut self, index: Index) -> Option<LsdSng> {
         if self.is_file_in_use(index) {
             let name = {
                 let bytes = self.file_name_mut(index);
@@ -184,11 +217,14 @@ impl Filesystem {
         }
     }
 
-    /// The index of the file the [`SRam`](crate::sram)'s working memory song is supposed to refer to
-    pub fn active_file(&self) -> Option<u5> {
+    /// The index of the file currently being worked on
+    ///
+    /// LSDJ's [`SRam`](crate::sram) has working memory for one uncompressed song. Usually this song represents
+    /// an actively edited verson of one of the files in the filesystem.
+    pub fn active_file(&self) -> Option<Index> {
         match self.bytes[ACTIVE_FILE_INDEX] {
             NO_ACTIVE_FILE => None,
-            index => Some(u5::new(index)),
+            index => Some(Index::new(index)),
         }
     }
 
@@ -201,7 +237,7 @@ impl Filesystem {
     }
 
     /// Decompress a file starting at a specific block
-    fn decompress(&self, block: u8) -> Result<SongMemory, FromReaderError> {
+    fn decompress(&self, block: u8) -> Result<SongMemory, song::FromReaderError> {
         let mut reader = Cursor::new(&self.bytes);
         reader.seek(SeekFrom::Start(Self::block_range(block).start as u64))?;
 
@@ -244,25 +280,25 @@ impl Filesystem {
     }
 
     /// Retrieve the bytes for a given file
-    fn file_name(&self, file: u5) -> &[u8] {
+    fn file_name(&self, file: Index) -> &[u8] {
         let offset = u8::from(file) as usize * 8;
         &self.bytes[offset..offset + 8]
     }
 
     /// Retrieve the bytes for a given file
-    fn file_name_mut(&mut self, file: u5) -> &mut [u8] {
+    fn file_name_mut(&mut self, file: Index) -> &mut [u8] {
         let offset = u8::from(file) as usize * 8;
         &mut self.bytes[offset..offset + 8]
     }
 
     /// Retrieve the bytes for a given file
-    fn file_version_mut(&mut self, file: u5) -> &mut u8 {
+    fn file_version_mut(&mut self, file: Index) -> &mut u8 {
         let offset = u8::from(file) as usize;
         &mut self.bytes[FILE_VERSIONS_RANGE][offset]
     }
 
     /// Retrieve the indices of the blocks for a specific file
-    fn file_blocks(&self, file: u5) -> Vec<u8> {
+    fn file_blocks(&self, file: Index) -> Vec<u8> {
         let file = file.into();
         self.alloc_table()
             .iter()
@@ -278,9 +314,9 @@ impl Filesystem {
     }
 }
 
-/// An error describing what could go wrong reading a [`Filesystem`] from I/O
+/// Errors that might occur deserializing a [`Filesystem`] from I/O
 #[derive(Debug, Error)]
-pub enum FilesystemReadError {
+pub enum FromReaderError {
     /// All correctly initialized filesystem memory has certain magic bytes set.
     /// This error is returned when that isn't the case during a read.
     #[error("The initialization check failed")]
@@ -308,7 +344,7 @@ impl<'a> Iterator for Entries<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if (self.index as usize) < Filesystem::FILES_CAPACITY {
-            let file = self.fs.file(u5::new(self.index));
+            let file = self.fs.file(Index::new(self.index));
             self.index += 1;
             Some(file)
         } else {
@@ -317,10 +353,10 @@ impl<'a> Iterator for Entries<'a> {
     }
 }
 
-/// Reference to a single file in the [`Filesystem`]
+/// Immutable reference to a single [`File`] in the [`Filesystem`]
 pub struct Entry<'a> {
     fs: &'a Filesystem,
-    index: u5,
+    index: Index,
 }
 
 impl<'a> File for Entry<'a> {
@@ -333,7 +369,7 @@ impl<'a> File for Entry<'a> {
         self.fs.bytes[offset]
     }
 
-    fn decompress(&self) -> Result<SongMemory, FromReaderError> {
+    fn decompress(&self) -> Result<SongMemory, song::FromReaderError> {
         let index = self.index.into();
 
         let first_block = self
@@ -371,7 +407,6 @@ impl<'a> File for Entry<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::u5;
 
     #[test]
     fn empty_92l() {
@@ -385,21 +420,21 @@ mod tests {
             Filesystem::from_reader(bytes).expect("could not parse filesystem")
         };
 
-        assert_eq!(filesystem.active_file(), Some(u5::new(0)));
+        assert_eq!(filesystem.active_file(), Some(Index::new(0)));
 
-        assert!(filesystem.is_file_in_use(u5::new(0)));
-        let file = filesystem.file(u5::new(0)).unwrap();
+        assert!(filesystem.is_file_in_use(Index::new(0)));
+        let file = filesystem.file(Index::new(0)).unwrap();
         assert_eq!(file.name(), Ok("EMPTY".try_into().unwrap()));
         assert_eq!(file.version(), 0);
 
         let song = file.decompress().unwrap();
         assert_eq!(song.format_version(), 0x16);
 
-        assert!(!filesystem.is_file_in_use(u5::new(1)));
-        assert!(filesystem.file(u5::new(1)).is_none());
+        assert!(!filesystem.is_file_in_use(Index::new(1)));
+        assert!(filesystem.file(Index::new(1)).is_none());
 
-        filesystem.remove_file(u5::new(0));
-        assert!(!filesystem.is_file_in_use(u5::new(0)));
+        filesystem.remove_file(Index::new(0));
+        assert!(!filesystem.is_file_in_use(Index::new(0)));
     }
 
     #[test]
@@ -409,13 +444,17 @@ mod tests {
         let name = "EMPTY".try_into().unwrap();
         let song = SongMemory::from_bytes(include_bytes!("../../../test/92L_empty.raw")).unwrap();
 
-        let old = filesystem.insert_file(u5::new(0), &name, 0, &song).unwrap();
+        let old = filesystem
+            .insert_file(Index::new(0), &name, 0, &song)
+            .unwrap();
 
-        assert!(filesystem.is_file_in_use(u5::new(0)));
+        assert!(filesystem.is_file_in_use(Index::new(0)));
         assert!(old.is_none());
 
-        let old = filesystem.insert_file(u5::new(0), &name, 0, &song).unwrap();
-        assert!(filesystem.is_file_in_use(u5::new(0)));
+        let old = filesystem
+            .insert_file(Index::new(0), &name, 0, &song)
+            .unwrap();
+        assert!(filesystem.is_file_in_use(Index::new(0)));
         assert!(old.is_some());
     }
 }

@@ -1,7 +1,7 @@
 //! The `.lsdsng` format
 
 use crate::{
-    file::{filesystem::Filesystem, File, FileToLsdSngError},
+    fs::{File, FileToLsdSngError, Filesystem},
     name::{self, Name},
     serde::{compress_block, decompress_block, CompressBlockError, End},
     song::{self, SongMemory},

@@ -2,7 +2,7 @@ use crate::utils::iter_files;
 use anyhow::{Context, Result};
 use clap::Args;
 use lsdj::{
-    file::{filesystem::Filesystem, File},
+    fs::{File, Filesystem},
     lsdsng::LsdSng,
     sram::SRam,
 };

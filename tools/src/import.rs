@@ -2,13 +2,12 @@ use crate::utils::{check_for_overwrite, has_extension, iter_files};
 use anyhow::{Context, Error, Result};
 use clap::Args;
 use lsdj::{
-    file::{filesystem::Filesystem, File},
+    fs::{File, Filesystem, Index},
     lsdsng::LsdSng,
     name::Name,
     serde::CompressBlockError,
     song::SongMemory,
     sram::SRam,
-    u5,
 };
 use std::path::PathBuf;
 
@@ -98,7 +97,7 @@ fn insert(
 ) -> Result<()> {
     match sram
         .filesystem
-        .insert_file(u5::new(index), name, version, song)
+        .insert_file(Index::new(index), name, version, song)
     {
         Err(CompressBlockError::NoBlockLeft) => {
             Err(Error::msg("Ran out of space in the SRAM memory"))

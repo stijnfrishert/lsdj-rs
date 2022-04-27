@@ -6,7 +6,7 @@
 //! files to flashcarts for playback on real hardware.
 
 use crate::{
-    file::filesystem::{Filesystem, FilesystemReadError},
+    fs::{self, Filesystem},
     song::{self, SongMemory},
 };
 use std::{
@@ -129,7 +129,7 @@ impl Default for SRam {
 pub enum FromReaderError {
     /// Deserializing the file system from I/O failed
     #[error("Reading the filesystem failed")]
-    Filesystem(#[from] FilesystemReadError),
+    Filesystem(#[from] fs::FromReaderError),
 
     /// Deserializing the working memory song from I/O failed
     #[error("Reading the working memory song failed")]
