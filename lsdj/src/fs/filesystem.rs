@@ -413,7 +413,7 @@ mod tests {
         use std::io::Cursor;
 
         let mut filesystem = {
-            let mut bytes = Cursor::new(include_bytes!("../../../test/92L_empty.sav"));
+            let mut bytes = Cursor::new(include_bytes!("../../test/92L_empty.sav"));
             bytes
                 .seek(SeekFrom::Start(0x8000))
                 .expect("Could not seek to filesystem start");
@@ -442,7 +442,7 @@ mod tests {
         let mut filesystem = Filesystem::new();
 
         let name = "EMPTY".try_into().unwrap();
-        let song = SongMemory::from_bytes(include_bytes!("../../../test/92L_empty.raw")).unwrap();
+        let song = SongMemory::from_bytes(include_bytes!("../../test/92L_empty.raw")).unwrap();
 
         let old = filesystem
             .insert_file(Index::new(0), &name, 0, &song)
