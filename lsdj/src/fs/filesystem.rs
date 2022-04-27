@@ -442,7 +442,7 @@ mod tests {
         let mut filesystem = Filesystem::new();
 
         let name = "EMPTY".try_into().unwrap();
-        let song = SongMemory::from_bytes(include_bytes!("../../test/92L_empty.raw")).unwrap();
+        let song = SongMemory::new();
 
         let old = filesystem
             .insert_file(Index::new(0), &name, 0, &song)

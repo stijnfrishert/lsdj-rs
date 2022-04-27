@@ -3,6 +3,7 @@ authors = ["Stijn Frishert <info@stijnfrishert.com>"]
 categories = ["encoding"]
 description = "Library for interfacing with LSDJ files and memory"
 edition = "2021"
+exclude = ["test"]
 homepage = "https://github.com/stijnfrishert/lsdj-rs"
 keywords = ["lsdj", "chiptune", "gameboy", "music"]
 license = "MIT OR Apache-2.0"

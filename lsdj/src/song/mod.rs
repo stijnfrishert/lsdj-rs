@@ -24,7 +24,7 @@ impl SongMemory {
     /// This sets all the necessary verification bytes that LSDJ uses to check for memory corruption.
     pub fn new() -> Self {
         Self {
-            bytes: *include_bytes!("../../test/92L_empty.raw"),
+            bytes: *include_bytes!("92L_empty.raw"),
         }
     }
 
