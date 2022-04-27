@@ -1,3 +1,5 @@
+//! The `export` subcommand
+
 use crate::utils::check_for_overwrite;
 use anyhow::{Context, Result};
 use clap::Args;
@@ -9,9 +11,9 @@ use std::{env::current_dir, fs::create_dir_all};
 
 use std::path::PathBuf;
 
-/// Export .lsdsng's from .sav files
+/// Arguments for the `export` subcommand
 #[derive(Args)]
-#[clap(author, version, long_about = None)]
+#[clap(author, version, about = "Export .lsdsng's from .sav files", long_about = None)]
 pub struct ExportArgs {
     /// The path to the save file to export from
     path: PathBuf,
@@ -36,6 +38,7 @@ pub struct ExportArgs {
     decimal: bool,
 }
 
+/// Export .lsdsng's from .sav files
 pub fn export(mut args: ExportArgs) -> Result<()> {
     let sram = SRam::from_path(&args.path).context("Reading the SRAM from file failed")?;
 

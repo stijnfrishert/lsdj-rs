@@ -1,3 +1,5 @@
+//! The `import` subcommand
+
 use crate::utils::{check_for_overwrite, has_extension, iter_files};
 use anyhow::{Context, Error, Result};
 use clap::Args;
@@ -11,9 +13,9 @@ use lsdj::{
 };
 use std::path::PathBuf;
 
-/// Import .lsdsng's into a .sav file
+/// Arguments for the `import` subcommand
 #[derive(Args)]
-#[clap(author, version, long_about = None)]
+#[clap(author, version, about = "Import .lsdsng's into a .sav file", long_about = None)]
 pub struct ImportArgs {
     /// Paths to the songs that should be imported into a save
     song: Vec<PathBuf>,
@@ -23,6 +25,7 @@ pub struct ImportArgs {
     output: PathBuf,
 }
 
+/// Import .lsdsng's into a .sav file
 pub fn import(args: ImportArgs) -> Result<()> {
     let mut index = 0u8;
     let mut sram = SRam::new();

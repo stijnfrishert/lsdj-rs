@@ -1,3 +1,5 @@
+//! The `inspect` subcommand
+
 use crate::utils::iter_files;
 use anyhow::{Context, Result};
 use clap::Args;
@@ -8,9 +10,9 @@ use lsdj::{
 };
 use std::path::{Path, PathBuf};
 
-/// Inspect LSDJ .sav and .lsdsng files, or even entire directories for their contents
+/// Arguments for the `inspect` subcommand
 #[derive(Args)]
-#[clap(author, version, long_about = None)]
+#[clap(author, version, about = "Inspect LSDJ .sav and .lsdsng files, or even entire directories for their contents", long_about = None)]
 pub struct InspectArgs {
     /// The path(s) to inspect
     path: Vec<PathBuf>,
@@ -20,6 +22,7 @@ pub struct InspectArgs {
     recursive: bool,
 }
 
+/// Inspect LSDJ .sav and .lsdsng files, or even entire directories for their contents
 pub fn inspect(args: &InspectArgs) -> Result<()> {
     let paths: Vec<_> = iter_files(&args.path, args.recursive, &["sav", "lsdsng"])
         .map(|entry| entry.path().to_owned())
