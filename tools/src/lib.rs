@@ -1,4 +1,4 @@
-//! # LSDJ Tools
+//! # lsdj-tools
 //!
 //! [LittleSoundDj](https://www.littlesounddj.com/lsd/index.php), or _LSDJ_ for short, is popular music tracker software for the original [Nintendo Game Boy](https://en.wikipedia.org/wiki/Game_Boy). While the handheld console originally was released in 1989, ([chiptune](https://en.wikipedia.org/wiki/Chiptune)) musicians still use its hardware to create and perform electronic music nowadays.
 //!
@@ -6,11 +6,9 @@
 //!
 //! ## Inspect
 //!
-//! ```console
-//! lsdj-tools-inspect 0.1.0
-//! Stijn Frishert <info@stijnfrishert.com>
 //! Inspect LSDJ .sav and .lsdsng files, or even entire directories for their contents
 //!
+//! ```console
 //! USAGE:
 //!     lsdj-tools inspect [OPTIONS] [PATH]...
 //!
@@ -45,11 +43,9 @@
 //!
 //! ## Export
 //!
-//! ```console
-//! lsdj-tools-export 0.1.0
-//! Stijn Frishert <info@stijnfrishert.com>
 //! Export .lsdsng's from .sav files
 //!
+//! ```console
 //! USAGE:
 //!     lsdj-tools export [OPTIONS] <PATH> [INDEX]...
 //!
@@ -87,11 +83,9 @@
 //!
 //! ## Import
 //!
-//! ```console
-//! lsdj-tools-import 0.1.0
-//! Stijn Frishert <info@stijnfrishert.com>
 //! Import .lsdsng's into a .sav file
 //!
+//! ```console
 //! USAGE:
 //!     lsdj-tools import --output <OUTPUT> [SONG]...
 //!
