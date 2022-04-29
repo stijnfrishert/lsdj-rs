@@ -7,7 +7,7 @@ While LSDJ has a built-in filesystem for managing tracks, you need tools to get 
 ## Inspect
 
 ```console
-lsdj-tools-inspect 1.0.0
+lsdj-tools-inspect 0.1.0
 Stijn Frishert <info@stijnfrishert.com>
 Inspect LSDJ .sav and .lsdsng files, or even entire directories for their contents
 
@@ -46,7 +46,7 @@ Mem 144/192    [==================      ]
 ## Export
 
 ```console
-lsdj-tools-export 1.0.0
+lsdj-tools-export 0.1.0
 Stijn Frishert <info@stijnfrishert.com>
 Export .lsdsng's from .sav files
 
@@ -88,7 +88,7 @@ OPTIONS:
 ## Import
 
 ```console
-lsdj-tools-import 1.0.0
+lsdj-tools-import 0.1.0
 Stijn Frishert <info@stijnfrishert.com>
 Import .lsdsng's into a .sav file
 
