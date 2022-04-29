@@ -17,14 +17,14 @@ use thiserror::Error;
 ///
 /// Because [`SRam`](crate::sram) consists of multiple songs, artists often export/import them to/from a
 /// format called `.lsdsng`. It's a simple "dumbed-down" version of the SRAM filesystem, containing the
-/// song name and version along with compressed data for just _one_ song.
+/// name and version along with compressed data for just _one_ song.
 #[derive(Clone)]
 pub struct LsdSng {
     /// The name of the song stored in the [`LsdSng`]
-    pub name: Name<8>,
+    name: Name<8>,
 
     /// The song version (increased with every save)
-    pub version: u8,
+    version: u8,
 
     /// The blocks that make up the compressed [`SongMemory`]
     ///

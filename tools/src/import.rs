@@ -45,7 +45,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
                 .decompress()
                 .context(format!("Could not decompress {}", path.to_string_lossy()))?;
 
-            insert(&mut sram, index, &lsdsng.name, lsdsng.version, &song)?;
+            insert(&mut sram, index, &lsdsng.name()?, lsdsng.version(), &song)?;
 
             println!("{:02} => {}", index, path.to_string_lossy());
 

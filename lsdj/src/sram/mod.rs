@@ -1,7 +1,7 @@
 //! LittleSoundDJ SRAM/`.sav` file handling
 //!
-//! This module contains functionality for reading, writing and manipulating SRAM, which
-//! is where LSDJ stores its songs. Usually people work with `.sav` files, which gameboy
+//! This module contains code for manipulating [`SRam`], which is where LSDJ stores our
+//! songs (compressed and uncompressed). Usually people work with `.sav` files, which gameboy
 //! emulators use to store the SRAM tied to a ROM. You can also download/upload `.sav`
 //! files to flashcarts for playback on real hardware.
 
@@ -127,13 +127,13 @@ impl Default for SRam {
 /// Errors that might be returned from [`SRam::from_reader()`]
 #[derive(Debug, Error)]
 pub enum FromReaderError {
-    /// Deserializing the file system from I/O failed
-    #[error("Reading the filesystem failed")]
-    Filesystem(#[from] fs::FromReaderError),
-
     /// Deserializing the working memory song from I/O failed
     #[error("Reading the working memory song failed")]
     WorkingSong(#[from] song::FromReaderError),
+
+    /// Deserializing the file system from I/O failed
+    #[error("Reading the filesystem failed")]
+    Filesystem(#[from] fs::FromReaderError),
 }
 
 /// Errors that might be returned from [`SRam::from_path()`]
@@ -143,7 +143,7 @@ pub enum FromPathError {
     #[error("Opening the file failed")]
     FileOpen(#[from] io::Error),
 
-    /// Deserialization failed
+    /// Deserialization itself somehow failed
     #[error("Reading the SRAM from file failed")]
     Read(#[from] FromReaderError),
 }

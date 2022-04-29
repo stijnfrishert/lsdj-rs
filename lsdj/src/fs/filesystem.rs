@@ -29,11 +29,11 @@ const UNUSED_BLOCK: u8 = 0xFF;
 /// LSDJ [`SRam`](crate::sram) consists of one uncompressed song, and a filesystem storage where songs not
 /// currently being worked on can be compressed and stored. [`Filesystem`] presents an interface
 /// for retrieving and saving files into the storage. The actual compression algorithm is
-/// implemented in [`crate::serde`].
+/// implemented in [`serde`](crate::serde).
 ///
 /// The LSDJ filesystem has a maximum capacity of 32 files, no matter how much space they take
 /// up. There is space allocated for the name and version number of each file regardless. Whether
-/// a file entry slot is actually in use solely depends on whether and compressed data blocks can
+/// a file entry slot is actually in use solely depends on whether any compressed data blocks can
 /// be found for that file index.
 ///
 /// The compression itself is done in blocks of 512 bytes each, according to the specified
@@ -317,8 +317,10 @@ impl Filesystem {
 /// Errors that might occur deserializing a [`Filesystem`] from I/O
 #[derive(Debug, Error)]
 pub enum FromReaderError {
-    /// All correctly initialized filesystem memory has certain magic bytes set.
-    /// This error is returned when that isn't the case during a read.
+    /// All correctly initialized filesystem memory has certain bytes set for
+    /// verification against memory corruption.
+    ///
+    /// This error is returned when that those bytes are faulty during a read.
     #[error("The initialization check failed")]
     InitializationCheckIncorrect,
 

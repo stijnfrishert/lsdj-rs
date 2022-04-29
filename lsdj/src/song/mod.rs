@@ -93,8 +93,10 @@ pub enum FromBytesError {
     #[error("The slice isn't of the correct size")]
     IncorrectSize,
 
-    /// All correctly initialized song memory has certain magic bytes set.
-    /// This error is returned when that isn't the case during a read.
+    /// All correctly initialized song memory has certain bytes set for
+    /// verification against memory corruption.
+    ///
+    /// This error is returned when that those bytes are faulty during a read.
     #[error("The initialization check failed")]
     InitializationCheckIncorrect,
 }

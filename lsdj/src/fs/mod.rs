@@ -1,4 +1,10 @@
-//! The LSDJ filesystem and tools for working with compressed files
+//! The LSDJ filesystem.
+//!
+//! Every SRAM comes with a filesystem to store (compressed) you're currently not working on.
+//! This module contains files for manipulating such a filesystem, though you usually do not
+//! have to construct one yourself.
+//!
+//! See [`SRam`](crate::sram) for more information.
 
 mod filesystem;
 

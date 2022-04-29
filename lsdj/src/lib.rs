@@ -1,10 +1,17 @@
 //! # LSDJ
 //!
-//! [LittleSoundDj](https://www.littlesounddj.com/lsd/index.php), or _LSDJ_ for short, is popular music tracker software for the original [Nintendo Game Boy](https://en.wikipedia.org/wiki/Game_Boy). While the handheld console originally was released in 1989, ([chiptune](https://en.wikipedia.org/wiki/Chiptune)) musicians still use its hardware to create and perform electronic music nowadays.
+//! [LittleSoundDj](https://www.littlesounddj.com/lsd/index.php), or _LSDJ_ for short, is popular music
+//! tracker software for the original [Nintendo Game Boy](https://en.wikipedia.org/wiki/Game_Boy). While
+//! the handheld console originally was released in 1989, ([chiptune](https://en.wikipedia.org/wiki/Chiptune))
+//! musicians still use its hardware to create and perform electronic music nowadays.
 //!
-//! While LSDJ has a built-in filesystem for managing tracks, you need tools to get out the individual files for back-ups or constructing new save files from exported tracks. The developer behind LSDJ has also made [LSDPatcher](https://github.com/jkotlinski/lsdpatch), a GUI package for managing your songs.
+//! While LSDJ has a built-in filesystem for managing tracks, you need tools to get out the individual files for
+//! back-ups or constructing new save files from exported tracks. This crate provides a library for manipulating
+//! LSDJ save files/SRAM, in combination with a command-line utility crate for managing your songs. It was
+//! inspired by my work on [liblsdj](https://github.com/stijnfrishert/liblsdj), an equivalent library in C.
 //!
-//! This crate provides an alternative library for manipulating LSDJ save files/SRAM, in combination with a command-line utility for managing your songs. It was inspired by my work on [liblsdj](https://github.com/stijnfrishert/liblsdj), an equivalent library in C.
+//! The developer behind LSDJ has also made [LSDPatcher](https://github.com/jkotlinski/lsdpatch), a GUI package
+//! for managing your songs.
 //!
 //! ## Example
 //!
@@ -34,7 +41,7 @@
 //! - [`SRAM`](crate::sram) serialization and deserialization
 //! - [`Filesystem`](crate::fs) manipulation (querying, inserting and removing files)
 //! - [`LsdSng`](crate::lsdsng) serialization and deserialization
-//! - Full implementation of the [compression algorithm](crate::serde)
+//! - Full implementation of the [compression algorithm](crate::serde) (verified with tests)
 //!
 //! ## Wishlist
 //!

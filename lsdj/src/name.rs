@@ -12,7 +12,7 @@ use thiserror::Error;
 ///
 /// The maximum length isn't the same everywhere, which is why this struct is generic over its length.
 ///
-/// The allowed characters in a [`Name`] are (ASCII) A-Z, 0-9, space and x. The x is represented
+/// The allowed characters in a [`Name`] are (ASCII) `A-Z`, `0-9`, space and `x`. The `x` is represented
 /// as a lightning glyph in the default LSDJ ROM.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Name<const N: usize> {
@@ -126,11 +126,13 @@ impl<const N: usize> FromStr for Name<N> {
 /// Errors that can result from trying to convert a byte slice to a [`Name`]
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum FromBytesError {
-    /// Error case for when the source slice is too big to fit in the [`Name`] string.
+    /// Error case for when the source slice is too big to fit in the [`Name`] string
     #[error("The slice did not fit in the name array")]
     TooLong,
 
-    /// Only a specific subset of ASCII characters are allowed in [`Name`] strings.
+    /// Only a specific subset of ASCII characters are allowed in [`Name`] strings
+    ///
+    /// An invalid byte was found during conversion from bytes
     #[error("Byte {byte} at position {index} is not allowed as a name character")]
     InvalidByte { byte: u8, index: usize },
 }

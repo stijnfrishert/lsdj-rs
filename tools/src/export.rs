@@ -67,12 +67,13 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
                 filename.push_str(&format!("{:02}_", index));
             }
 
-            filename.push_str(lsdsng.name.as_str());
+            let name = lsdsng.name()?;
+            filename.push_str(name.as_str());
             if args.output_version {
                 if args.decimal {
-                    filename.push_str(&format!("_v{:03}", lsdsng.version));
+                    filename.push_str(&format!("_v{:03}", lsdsng.version()));
                 } else {
-                    filename.push_str(&format!("_v{:02X}", lsdsng.version));
+                    filename.push_str(&format!("_v{:02X}", lsdsng.version()));
                 }
             }
 
@@ -86,7 +87,7 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
                 println!(
                     "{:02}. {:8} => {}",
                     index,
-                    lsdsng.name.as_str(),
+                    name.as_str(),
                     path.file_name().unwrap().to_string_lossy()
                 );
             }
