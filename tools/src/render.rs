@@ -1,5 +1,6 @@
 //! The `render` subcommand
 
+use crate::utils::check_for_overwrite;
 use anyhow::{Context, Result};
 use clap::Args;
 use mizu_core::{GameBoy, GameboyConfig, JoypadButton};
@@ -25,9 +26,6 @@ pub struct RenderArgs {
 
 /// Render LSDJ .sav and .lsdsng files, or even entire directories for their contents
 pub fn render(args: RenderArgs) -> Result<()> {
-    println!("Rendering with ROM {}", args.rom.to_string_lossy());
-    println!("Rendering {}", args.sav.to_string_lossy());
-
     let mut gameboy = GameBoy::new(args.rom, None, GameboyConfig { is_dmg: true })
         .context("Could not boot up ROM")?;
 
@@ -56,20 +54,29 @@ pub fn render(args: RenderArgs) -> Result<()> {
         audio.noise.extend_from_slice(&source.noise);
     }
 
-    write_channel("/Users/stijn/Desktop/SRPP/srpp_all.wav", audio.all)
+    write_channel("/Users/stijn/Desktop/SRPP/audio/srpp_all.wav", audio.all)
         .context("Could not write all")?;
 
-    write_channel("/Users/stijn/Desktop/SRPP/srpp_pulse1.wav", audio.pulse1)
-        .context("Could not write pulse1")?;
+    write_channel(
+        "/Users/stijn/Desktop/SRPP/audio/srpp_pulse1.wav",
+        audio.pulse1,
+    )
+    .context("Could not write pulse1")?;
 
-    write_channel("/Users/stijn/Desktop/SRPP/srpp_pulse2.wav", audio.pulse2)
-        .context("Could not write pulse2")?;
+    write_channel(
+        "/Users/stijn/Desktop/SRPP/audio/srpp_pulse2.wav",
+        audio.pulse2,
+    )
+    .context("Could not write pulse2")?;
 
-    write_channel("/Users/stijn/Desktop/SRPP/srpp_wave.wav", audio.wave)
+    write_channel("/Users/stijn/Desktop/SRPP/audio/srpp_wave.wav", audio.wave)
         .context("Could not write wave")?;
 
-    write_channel("/Users/stijn/Desktop/SRPP/srpp_noise.wav", audio.noise)
-        .context("Could not write noise")?;
+    write_channel(
+        "/Users/stijn/Desktop/SRPP/audio/srpp_noise.wav",
+        audio.noise,
+    )
+    .context("Could not write noise")?;
 
     Ok(())
 }
@@ -88,14 +95,20 @@ fn write_channel<P>(path: P, audio: Vec<f32>) -> Result<()>
 where
     P: AsRef<Path>,
 {
-    let mut writer = File::create(path).context("Could not create output file")?;
+    let path = path.as_ref();
 
-    wav::write(
-        Header::new(WAV_FORMAT_IEEE_FLOAT, 2, 44100, 32),
-        &BitDepth::ThirtyTwoFloat(audio),
-        &mut writer,
-    )
-    .context("Could not write to output file")?;
+    if check_for_overwrite(path)? {
+        let mut writer = File::create(&path).context("Could not create output file")?;
+
+        wav::write(
+            Header::new(WAV_FORMAT_IEEE_FLOAT, 2, 44100, 32),
+            &BitDepth::ThirtyTwoFloat(audio),
+            &mut writer,
+        )
+        .context("Could not write to output file")?;
+
+        println!("Wrote {}", path.to_string_lossy());
+    }
 
     Ok(())
 }
