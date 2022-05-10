@@ -75,6 +75,25 @@
         "/Users/stijn/Google Drive/lsdj/4ntler"
       ],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug LSDJ Tools – Render",
+      "cargo": {
+        "args": ["build", "--bin=lsdj-tools", "--package=lsdj-tools"],
+        "filter": {
+          "name": "lsdj-tools",
+          "kind": "bin"
+        }
+      },
+      "args": [
+        "render",
+        "-r",
+        "/Users/stijn/Google Drive/lsdj/lsdj/old/lsdj_596.gb",
+        "/Users/stijn/Google Drive/lsdj/4ntler/Walking Bass.lsdsng"
+      ],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

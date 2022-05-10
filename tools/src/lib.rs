@@ -110,4 +110,5 @@
 pub mod export;
 pub mod import;
 pub mod inspect;
+pub mod render;
 pub(crate) mod utils;
