@@ -15,5 +15,7 @@ version = "0.1.0"
 anyhow = "1.0.56"
 clap = {version = "3.0.10", features = ["derive"]}
 lsdj = {version = "0.1.0", path = "../lsdj"}
+mizu-core = {git = "https://github.com/Amjad50/mizu.git", rev = "c4fd89dc9cf209c6e28a5d420bfd0d07d6977007"}
 walkdir = "2.3.2"
+wav = "1.0.0"
 wild = "2.0.4"

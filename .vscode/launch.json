@@ -90,8 +90,8 @@
       "args": [
         "render",
         "-r",
-        "/Users/stijn/Google Drive/lsdj/lsdj/old/lsdj_596.gb",
-        "/Users/stijn/Google Drive/lsdj/4ntler/Walking Bass.lsdsng"
+        "/Users/stijn/Desktop/SRPP/SRPP.gb",
+        "/Users/stijn/Desktop/SRPP/SRPP.gb.sav"
       ],
       "cwd": "${workspaceFolder}"
     }
