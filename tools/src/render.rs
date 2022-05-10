@@ -3,7 +3,8 @@
 use crate::utils::check_for_overwrite;
 use anyhow::{Context, Result};
 use clap::Args;
-use mizu_core::{GameBoy, GameboyConfig, JoypadButton};
+use humantime::parse_duration;
+use mizu_core::{AudioBuffers, GameBoy, GameboyConfig, JoypadButton};
 use std::{
     fs::File,
     path::{Path, PathBuf},
@@ -22,6 +23,10 @@ pub struct RenderArgs {
 
     /// The path to the sav to use
     sav: PathBuf,
+
+    /// The duration of the render, e.g. "3m 10s"
+    #[clap(short, long, default_value = "10s")]
+    duration: String,
 }
 
 /// Render LSDJ .sav and .lsdsng files, or even entire directories for their contents
@@ -30,8 +35,7 @@ pub fn render(args: RenderArgs) -> Result<()> {
         .context("Could not boot up ROM")?;
 
     // Run the clock for a little while to skip some weird start-up blip in the audio
-    let boot_up_duration = (FPS * 0.01).ceil() as usize;
-    for _ in 0..boot_up_duration {
+    for _ in 0..secs_to_frames(0.01) {
         gameboy.clock_for_frame();
         gameboy.audio_buffers();
     }
@@ -40,18 +44,21 @@ pub fn render(args: RenderArgs) -> Result<()> {
     gameboy.press_joypad(JoypadButton::Start);
 
     // Render the song!
-    let mut audio = AudioBuffers::default();
+    let mut audio = AudioBuffers {
+        all: Vec::with_capacity(0),
+        pulse1: Vec::with_capacity(0),
+        pulse2: Vec::with_capacity(0),
+        wave: Vec::with_capacity(0),
+        noise: Vec::with_capacity(0),
+    };
 
-    for _ in 0..400 {
+    let duration = parse_duration(&args.duration)
+        .context("Invalid duration string")?
+        .as_secs_f64();
+
+    for _ in 0..secs_to_frames(duration) {
         gameboy.clock_for_frame();
-
-        let source = gameboy.audio_buffers();
-
-        audio.all.extend_from_slice(&source.all);
-        audio.pulse1.extend_from_slice(&source.pulse1);
-        audio.pulse2.extend_from_slice(&source.pulse2);
-        audio.wave.extend_from_slice(&source.wave);
-        audio.noise.extend_from_slice(&source.noise);
+        merge_audio_buffers(&gameboy.audio_buffers(), &mut audio);
     }
 
     write_channel("/Users/stijn/Desktop/SRPP/audio/srpp_all.wav", audio.all)
@@ -81,14 +88,16 @@ pub fn render(args: RenderArgs) -> Result<()> {
     Ok(())
 }
 
-#[derive(Default)]
-struct AudioBuffers {
-    pub pulse1: Vec<f32>,
-    pub pulse2: Vec<f32>,
-    pub wave: Vec<f32>,
-    pub noise: Vec<f32>,
+fn secs_to_frames(secs: f64) -> usize {
+    (secs * FPS).ceil() as usize
+}
 
-    pub all: Vec<f32>,
+fn merge_audio_buffers(source: &AudioBuffers, target: &mut AudioBuffers) {
+    target.all.extend_from_slice(&source.all);
+    target.pulse1.extend_from_slice(&source.pulse1);
+    target.pulse2.extend_from_slice(&source.pulse2);
+    target.wave.extend_from_slice(&source.wave);
+    target.noise.extend_from_slice(&source.noise);
 }
 
 fn write_channel<P>(path: P, audio: Vec<f32>) -> Result<()>

@@ -14,8 +14,9 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0.56"
 clap = {version = "3.0.10", features = ["derive"]}
+humantime = "2.1.0"
 lsdj = {version = "0.1.0", path = "../lsdj"}
-mizu-core = {git = "https://github.com/Amjad50/mizu.git", rev = "c4fd89dc9cf209c6e28a5d420bfd0d07d6977007"}
+mizu-core = {git = "https://github.com/Amjad50/mizu.git", rev = "c03894b0a3cb63ce1907f5e5d1b994dd0901aa3c"}
 walkdir = "2.3.2"
 wav = "1.0.0"
 wild = "2.0.4"

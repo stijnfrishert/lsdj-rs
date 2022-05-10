@@ -91,7 +91,9 @@
         "render",
         "-r",
         "/Users/stijn/Desktop/SRPP/audio/SRPP.gb",
-        "/Users/stijn/Desktop/SRPP/audio/SRPP.gb.sav"
+        "/Users/stijn/Desktop/SRPP/audio/SRPP.gb.sav",
+        "-d",
+        "20s"
       ],
       "cwd": "${workspaceFolder}"
     }
