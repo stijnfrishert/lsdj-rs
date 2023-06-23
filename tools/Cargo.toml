@@ -13,7 +13,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.56"
-clap = {version = "3.0.10", features = ["derive"]}
+clap = {version = "4.2.1", features = ["derive"]}
 lsdj = {version = "0.1.0", path = "../lsdj"}
 walkdir = "2.3.2"
 wild = "2.0.4"
