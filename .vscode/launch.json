@@ -90,10 +90,10 @@
       "args": [
         "render",
         "-r",
-        "/Users/stijn/Desktop/SRPP/audio/SRPP.gb",
-        "/Users/stijn/Desktop/SRPP/audio/SRPP.gb.sav",
+        "/Users/stijn/Google Drive/lsdj/4ntler/releases/Cover/Void Dissolution/lsdj_840.gb",
+        "/Users/stijn/Google Drive/lsdj/4ntler/releases/Cover/Void Dissolution/lsdj_840.sav",
         "-d",
-        "20s"
+        "5m"
       ],
       "cwd": "${workspaceFolder}"
     }
