@@ -45,7 +45,7 @@ fn print(path: &Path) -> Result<()> {
 
     match path.extension().and_then(|str| str.to_str()) {
         Some("sav") => {
-            let sram = SRam::from_path(&path).context("Reading the SRAM from file failed")?;
+            let sram = SRam::from_path(path).context("Reading the SRAM from file failed")?;
 
             print_mem(&sram);
 
@@ -56,7 +56,7 @@ fn print(path: &Path) -> Result<()> {
             }
         }
         Some("lsdsng") => {
-            let lsdsng = LsdSng::from_path(&path).context("Reading the LsdSng from file failed")?;
+            let lsdsng = LsdSng::from_path(path).context("Reading the LsdSng from file failed")?;
             print_file(0, &lsdsng)?;
         }
         _ => (),

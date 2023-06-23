@@ -40,7 +40,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
         }
 
         if has_extension(path, "lsdsng") {
-            let lsdsng = LsdSng::from_path(&path).context("Could not load {path}")?;
+            let lsdsng = LsdSng::from_path(path).context("Could not load {path}")?;
             let song = lsdsng
                 .decompress()
                 .context(format!("Could not decompress {}", path.to_string_lossy()))?;
@@ -51,7 +51,7 @@ pub fn import(args: ImportArgs) -> Result<()> {
 
             index += 1;
         } else if has_extension(path, "sav") {
-            let sav = SRam::from_path(&path)
+            let sav = SRam::from_path(path)
                 .context(format!("Could not open {}", path.to_string_lossy()))?;
 
             for (source_index, file) in sav.filesystem.files().enumerate() {

@@ -399,7 +399,7 @@ impl<'a> File for Entry<'a> {
         let indices = self.fs.file_blocks(self.index);
         let mut blocks = Vec::with_capacity(Filesystem::BLOCK_LEN * indices.len());
         for idx in indices {
-            blocks.extend_from_slice(self.fs.block(idx as u8));
+            blocks.extend_from_slice(self.fs.block(idx));
         }
 
         Ok(LsdSng::new(name, self.version(), blocks))
