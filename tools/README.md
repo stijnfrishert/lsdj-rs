@@ -107,6 +107,50 @@ OPTIONS:
 Wrote test.sav
 ```
 
+## Collect
+
+Collect goes through a set of files and folders, and matches songs together by their name.
+
+It then lists all versions it has found per song, and in which file it has found them.
+
+The second column shows a SHA-256 hash of the song contents, to be able to compare them to other versions.
+
+Collect is also capable of writing this data to a json file instead.
+
+```console
+Usage: lsdj-tools collect [OPTIONS] [PATHS]...
+
+Arguments:
+  [PATHS]...
+          The paths to walk and check for songs
+
+Options:
+  -r, --recursive
+          Should folders be walked recursively
+
+      --json <JSON>
+          A JSON file the outcome should be written to
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+```
+
+### Example
+
+```console
+4ntler@mbp > lsdj-tools collect ./best_songs_ever
+BREATHE
+  v003 86 /usr/best_songs_ever/lsdj9_2_L.sav[0]
+  v002 43 /usr/best_songs_ever/lsdj9_2_A.sav[0]
+
+SUN
+  v004 f3 /usr/best_songs_ever/lsdj9_4_0_sun.sav[1]
+  v004 f3 /usr/best_songs_ever/lsdj9_4_0.sav[1]
+```
+
 ## Support
 
 If you like this crate and want to support me somehow, consider buying some of [my music](https://4ntler.bandcamp.com/).
