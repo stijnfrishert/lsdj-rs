@@ -13,8 +13,8 @@ repository = "https://github.com/stijnfrishert/lsdj-rs"
 version = "0.1.1"
 
 [dependencies]
-system-interface = "0.25.5"
-thiserror = "1.0.30"
+system-interface = "0.27.3"
+thiserror = "2.0.12"
 ux = "0.1.4"
 
 [dev-dependencies]
