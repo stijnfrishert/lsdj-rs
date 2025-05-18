@@ -2,7 +2,7 @@ use super::{File, FileToLsdSngError};
 use crate::{
     lsdsng::LsdSng,
     name::{FromBytesError, Name},
-    serde::{compress_block, decompress_block, CompressBlockError, End},
+    serde::{CompressBlockError, End, compress_block, decompress_block},
     song::{self, SongMemory},
 };
 use std::{

@@ -2,7 +2,7 @@
 authors = ["Stijn Frishert <info@stijnfrishert.com>"]
 categories = ["command-line-utilities"]
 description = "A set of tools for working with LSDJ files"
-edition = "2021"
+edition = "2024"
 homepage = "https://github.com/stijnfrishert/lsdj-rs"
 keywords = ["lsdj", "chiptune", "gameboy", "music"]
 license = "MIT OR Apache-2.0"
@@ -13,7 +13,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.56"
-clap = {version = "4.2.1", features = ["derive"]}
-lsdj = {version = "0.1.0", path = "../lsdj"}
+clap = { version = "4.2.1", features = ["derive"] }
+lsdj = { version = "0.1.0", path = "../lsdj" }
 walkdir = "2.3.2"
 wild = "2.0.4"

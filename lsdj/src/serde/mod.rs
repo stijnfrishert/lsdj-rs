@@ -4,7 +4,7 @@ mod compress;
 mod decompress;
 mod utils;
 
-pub use compress::{compress_block, CompressBlockError};
+pub use compress::{CompressBlockError, compress_block};
 pub use decompress::decompress_block;
 
 /// The result of block compression/decompression

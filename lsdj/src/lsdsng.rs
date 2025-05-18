@@ -3,7 +3,7 @@
 use crate::{
     fs::{File, FileToLsdSngError, Filesystem},
     name::{self, Name},
-    serde::{compress_block, decompress_block, CompressBlockError, End},
+    serde::{CompressBlockError, End, compress_block, decompress_block},
     song::{self, SongMemory},
 };
 use std::{

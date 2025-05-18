@@ -1,9 +1,9 @@
 use super::{
-    utils::{
-        read_byte, write_repeated_byte, write_repeated_bytes, CMD_BYTE, DEFAULT_INSTRUMENT_BYTE,
-        DEFAULT_WAVE_BYTE, EOF_BYTE, RLE_BYTE,
-    },
     End,
+    utils::{
+        CMD_BYTE, DEFAULT_INSTRUMENT_BYTE, DEFAULT_WAVE_BYTE, EOF_BYTE, RLE_BYTE, read_byte,
+        write_repeated_byte, write_repeated_bytes,
+    },
 };
 use crate::song::{instrument::DEFAULT_INSTRUMENT, wave::DEFAULT_WAVE};
 use std::{
