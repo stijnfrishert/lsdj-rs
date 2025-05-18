@@ -97,7 +97,7 @@ impl Filesystem {
     /// Is any compessed song data stored for the file slot at this index?
     fn is_file_in_use(&self, index: Index) -> bool {
         let index = index.into();
-        self.alloc_table().iter().any(|block| *block == index)
+        self.alloc_table().contains(&index)
     }
 
     /// Retrieve a [`File`] [`Entry`] from the filesystem
