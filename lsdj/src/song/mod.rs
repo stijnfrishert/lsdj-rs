@@ -23,8 +23,10 @@ impl SongMemory {
     ///
     /// This sets all the necessary verification bytes that LSDJ uses to check for memory corruption.
     pub fn new() -> Self {
+        let mut bytes = [0; Self::LEN];
+        bytes[0..130].copy_from_slice(include_bytes!("92L_empty.raw"));
         Self {
-            bytes: *include_bytes!("92L_empty.raw"),
+            bytes,
         }
     }
 
