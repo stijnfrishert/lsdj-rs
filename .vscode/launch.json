@@ -75,6 +75,20 @@
         "/Users/stijn/Google Drive/lsdj/4ntler"
       ],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug LSDJ Tools – Collect",
+      "cargo": {
+        "args": ["build", "--bin=lsdj-tools", "--package=lsdj-tools"],
+        "filter": {
+          "name": "lsdj-tools",
+          "kind": "bin"
+        }
+      },
+      "args": ["collect", "/Users/stijn/Desktop/lsdj"],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
