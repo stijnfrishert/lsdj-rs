@@ -29,12 +29,7 @@
           "kind": "bin"
         }
       },
-      "args": [
-        "inspect",
-        "-r",
-        // "/Users/stijn/Development/lsdj-rs/test"
-        "/Users/stijn/Google Drive/lsdj/4ntler"
-      ],
+      "args": ["inspect", "-r"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -48,12 +43,7 @@
           "kind": "bin"
         }
       },
-      "args": [
-        "export",
-        "-p",
-        "-v",
-        "/Users/stijn/Development/lsdj-rs/test/92L_empty.sav"
-      ],
+      "args": ["export", "-p", "-v"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -67,13 +57,7 @@
           "kind": "bin"
         }
       },
-      "args": [
-        "import",
-        "-o",
-        "/Users/stijn/Desktop/test.sav",
-        "/Users/stijn/Google Drive/lsdj/Tobokegao",
-        "/Users/stijn/Google Drive/lsdj/4ntler"
-      ],
+      "args": ["import", "-o"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -87,7 +71,7 @@
           "kind": "bin"
         }
       },
-      "args": ["collect", "/Users/stijn/Desktop/lsdj"],
+      "args": ["collect"],
       "cwd": "${workspaceFolder}"
     }
   ]
