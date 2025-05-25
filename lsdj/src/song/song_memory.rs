@@ -64,18 +64,9 @@ impl SongMemory {
     }
 
     /// Deserialize [`SongMemory`] from bytes
+    #[deprecated(note = "Use SongMemory::try_from(bytes: &[u8]) instead.")]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, FromBytesError> {
-        let bytes: [u8; Self::LEN] = bytes
-            .try_into()
-            .map_err(|_| FromBytesError::IncorrectSize)?;
-
-        let check = |offset| bytes[offset] == 0x72 && bytes[offset + 1] == 0x62;
-
-        if check(0x1E78) || check(0x3E80) || check(0x7FF0) {
-            Ok(Self { bytes })
-        } else {
-            Err(FromBytesError::InitializationCheckIncorrect)
-        }
+        Self::try_from(bytes)
     }
 
     /// Deserialize [`SongMemory`] from an arbitrary I/O reader
@@ -86,9 +77,10 @@ impl SongMemory {
         let mut bytes = [0; Self::LEN];
         reader.read_exact(bytes.as_mut_slice())?;
 
-        let song = Self::from_bytes(&bytes)?;
-
-        Ok(song)
+        match Self::try_from(bytes.as_ref()) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(FromReaderError::FromBytes(e))
+        }
     }
 
     /// Serialize [`SongMemory`] to an arbitrary I/O writer
@@ -115,13 +107,38 @@ impl SongMemory {
     }
 }
 
+/// Deserialize [`SongMemory`] from bytes
+impl TryFrom<&[u8]> for SongMemory {
+    type Error = FromBytesError;
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let bytes: [u8; Self::LEN] = value
+            .try_into()
+            .map_err(|_| FromBytesError::IncorrectSize)?;
+
+        let check = |offset| bytes[offset] == 0x72 && bytes[offset + 1] == 0x62;
+
+        if check(0x1E78) || check(0x3E80) || check(0x7FF0) {
+            Ok(Self { bytes })
+        } else {
+            Err(FromBytesError::InitializationCheckIncorrect)
+        }
+    }
+}
+
+impl TryFrom<Vec<u8>> for SongMemory {
+    type Error = FromBytesError;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        SongMemory::try_from(value.as_slice())
+    }
+}
+
 impl Default for SongMemory {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Errors that might be returned from [`SongMemory::from_bytes()`]
+/// Errors that might be returned from [`SongMemory::try_from(&[u8])`]
 #[derive(Debug, Error)]
 pub enum FromBytesError {
     /// The passed in number of bytes isn't correct
