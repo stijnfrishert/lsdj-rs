@@ -36,6 +36,11 @@ pub struct CollectArgs {
 
 /// Collect all versions of a (set of) song and print them
 pub fn collect(args: CollectArgs) -> Result<()> {
+    if args.paths.is_empty() {
+        println!("No paths provided to collect from");
+        return Ok(());
+    }
+
     // Collect the songs
     let outcome = collect_songs(args.paths, args.recursive);
 
