@@ -125,13 +125,20 @@ impl TryFrom<&[u8]> for SongMemory {
     }
 }
 
+impl TryFrom<Vec<u8>> for SongMemory {
+    type Error = FromBytesError;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        SongMemory::try_from(value.as_slice())
+    }
+}
+
 impl Default for SongMemory {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Errors that might be returned from [`SongMemory::from_bytes()`]
+/// Errors that might be returned from [`SongMemory::try_from(&[u8])`]
 #[derive(Debug, Error)]
 pub enum FromBytesError {
     /// The passed in number of bytes isn't correct
