@@ -61,3 +61,4 @@ pub mod name;
 pub mod serde;
 pub mod song;
 pub mod sram;
+pub mod kit;
