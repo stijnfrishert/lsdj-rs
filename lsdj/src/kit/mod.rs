@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use std::io::{Read};
+use std::io::Read;
 
 const MAX_SAMPLE_SPACE_PER_BANK: usize = 0x3fa0;
 const BANK_SIZE: usize = 0x4000;
@@ -20,12 +20,8 @@ impl Kit {
     pub fn try_from_reader<R: Read>(mut r: R) -> Result<Kit, String> {
         let mut buf = Vec::new();
         match r.read_to_end(&mut buf) {
-            Ok(_) => {
-                Kit::try_from(buf)
-            }
-            Err(e) => {
-                Err(e.to_string())
-            }
+            Ok(_) => Kit::try_from(buf),
+            Err(e) => Err(e.to_string()),
         }
     }
 }
@@ -49,6 +45,9 @@ impl Display for Kit {
 impl TryFrom<Vec<u8>> for Kit {
     type Error = String;
     fn try_from(v: Vec<u8>) -> Result<Self, Self::Error> {
+        if v.len() != BANK_SIZE {
+            return Err(format!("Invalid Kit size: 0x{:X}", v.len()));
+        }
         if v[0] != 0x60 || v[1] != 0x40 {
             return Err(format!("Invalid Kit header: 0x{:X} 0x{:X}", v[0], v[1]));
         }
