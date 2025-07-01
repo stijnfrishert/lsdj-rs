@@ -64,7 +64,7 @@ pub fn export(mut args: ExportArgs) -> Result<()> {
 
             let mut filename = String::new();
             if args.output_pos {
-                filename.push_str(&format!("{:02}_", index));
+                filename.push_str(&format!("{index:02}_"));
             }
 
             let name = lsdsng.name()?;
