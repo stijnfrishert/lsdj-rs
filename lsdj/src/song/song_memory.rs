@@ -17,9 +17,7 @@ impl SongMemory {
     /// Initialize a new song, creating a buffer containing necessary verification bytes.
     pub fn new() -> Self {
         let bytes = Self::make_empty_song();
-        Self {
-            bytes,
-        }
+        Self { bytes }
     }
 
     /// Construct a new, empty song, ready for use
@@ -34,7 +32,7 @@ impl SongMemory {
         bytes[0x1290..0x1690].fill(0xFF);
         let mut loops = 0;
         for i in (0x1dd0..0x1df9).step_by(6) {
-            bytes[i..i+6].copy_from_slice(&[0x57, 0x2d, 0x30+loops, 0x57, 0x2d, 0x31+loops]);
+            bytes[i..i + 6].copy_from_slice(&[0x57, 0x2d, 0x30 + loops, 0x57, 0x2d, 0x31 + loops]);
             loops += 2;
             if loops == 10 {
                 loops += 7;
@@ -44,18 +42,20 @@ impl SongMemory {
         bytes[0x2080..0x2880].fill(0xFF);
         bytes[0x3e80..0x3e82].copy_from_slice(&[0x72, 0x62]);
         for i in (0x3eb0..0x3fb0).step_by(16) {
-            bytes[i+7] = 0x10;
-            bytes[i+8] = 0xff;
-            bytes[i+11] = 0x10;
-            bytes[i+12] = 0xff;
+            bytes[i + 7] = 0x10;
+            bytes[i + 8] = 0xff;
+            bytes[i + 11] = 0x10;
+            bytes[i + 12] = 0xff;
         }
         bytes[0x3fb4] = 0x80;
         bytes[0x3fba..0x3fbc].copy_from_slice(&[0x07, 0x02]);
         bytes[0x3fc0..0x3fc4].copy_from_slice(&[0x00, 0x20, 0x00, 0x01]);
         bytes[0x3fc6..0x3fca].fill(0xFF);
         for i in (0x6000..0x7000).step_by(16) {
-            bytes[i..i+16].copy_from_slice(&[0x71, 0x32, 0x33, 0x44, 0x45, 0x55,
-                0x66, 0x77, 0x78, 0x89, 0x99, 0xaa, 0xab, 0xbc, 0xcd, 0xce]);
+            bytes[i..i + 16].copy_from_slice(&[
+                0x71, 0x32, 0x33, 0x44, 0x45, 0x55, 0x66, 0x77, 0x78, 0x89, 0x99, 0xaa, 0xab, 0xbc,
+                0xcd, 0xce,
+            ]);
         }
         bytes[0x7000..0x7ff0].fill(0xFF);
         bytes[0x7ff0..0x7ff2].copy_from_slice(&[0x72, 0x62]);
